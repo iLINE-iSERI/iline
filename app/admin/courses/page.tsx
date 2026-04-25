@@ -54,6 +54,13 @@ export default function AdminCoursesPage() {
         alert('강좌가 수정되었습니다');
       } else {
         // 생성
+        title: formData.title,
+        description: formData.description,
+        youtubeUrl: formData.youtubeUrl,
+        thumbnailUrl: formData.thumbnailUrl,
+        category: 'ai-basic',
+        isPublished: true,
+        order: 0,
         const newCourse = await createCourse(formData);
         setCourses((prev) => [...prev, newCourse as Course]);
         alert('강좌가 생성되었습니다');
