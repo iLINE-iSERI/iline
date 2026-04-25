@@ -63,7 +63,7 @@ export default function AdminCoursesPage() {
           isPublished: true,
           order: 0,           
         });
-        setCourses((prev) => [...prev, newCourse as Course]);
+        setCourses((prev) => [...prev, { id: newCourse, ...formData, category: 'ai-basic' as const, isPublished: true, order: 0 } as Course]);
         alert('강좌가 생성되었습니다');
       }
 
