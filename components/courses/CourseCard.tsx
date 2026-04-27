@@ -6,48 +6,47 @@ interface CourseCardProps {
 }
 
 export default function CourseCard({ course }: CourseCardProps) {
-  // 카테고리 한글 매핑
   const categoryLabel = {
     'ai-basic': 'AI 기초',
     'ai-ethics': 'AI 윤리',
     'coding': '코딩',
   };
 
-  // 카테고리 색상 매핑
-  const categoryColor = {
-    'ai-basic': 'bg-blue-100 text-blue-800',
-    'ai-ethics': 'bg-purple-100 text-purple-800',
-    'coding': 'bg-green-100 text-green-800',
+  const categoryGradient = {
+    'ai-basic': 'from-purple-500 to-purple-600',
+    'ai-ethics': 'from-teal-500 to-teal-600',
+    'coding': 'from-blue-500 to-blue-600',
   };
 
   return (
     <Link href={`/courses/${course.id}`}>
-      <div className="bg-white rounded-lg shadow hover:shadow-lg transition overflow-hidden cursor-pointer h-full flex flex-col">
-        {/* 썸네일 */}
-        <div className="relative overflow-hidden bg-gray-200 h-40">
+      <div className="card-hover bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer h-full flex flex-col">
+        <div className="relative overflow-hidden bg-gray-100 h-44">
           <img
             src={course.thumbnailUrl}
             alt={course.title}
-            className="w-full h-full object-cover hover:scale-105 transition"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
           <span
-            className={`absolute top-2 right-2 text-xs font-semibold px-3 py-1 rounded-full ${categoryColor[course.category]}`}
+            className={`absolute top-3 right-3 text-xs font-semibold px-3 py-1 rounded-full bg-gradient-to-r ${categoryGradient[course.category]} text-white shadow-md`}
           >
             {categoryLabel[course.category]}
           </span>
         </div>
 
-        {/* 내용 */}
-        <div className="p-4 flex flex-col flex-grow">
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 text-base">
+        <div className="p-5 flex flex-col flex-grow">
+          <h3 className="font-bold text-gray-900 mb-2 line-clamp-2 text-base">
             {course.title}
           </h3>
-          <p className="text-sm text-gray-600 line-clamp-2 flex-grow mb-4">
+          <p className="text-sm text-gray-500 line-clamp-2 flex-grow mb-4 leading-relaxed">
             {course.description}
           </p>
-          <button className="text-blue-600 hover:text-blue-700 font-semibold text-sm">
-            자세히 보기 →
-          </button>
+          <span className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700 font-semibold text-sm group">
+            자세히 보기
+            <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </span>
         </div>
       </div>
     </Link>
