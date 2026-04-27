@@ -19,31 +19,45 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <header className="sticky top-0 z-50 glass border-b border-white/20">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* 로고 */}
           <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-blue-600">iLINE</span>
-              <span className="hidden sm:block text-sm text-gray-500">지능소프트웨어교육연구소</span>
+            <Link href="/" className="flex items-center space-x-2 group">
+              <span className="text-2xl font-bold gradient-text">iLINE</span>
+              <span className="hidden sm:block text-sm text-gray-400 group-hover:text-gray-600 transition-colors">
+                지능소프트웨어교육연구소
+              </span>
             </Link>
           </div>
 
           {/* 데스크톱 네비게이션 */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-1">
             {user && (
               <>
-                <Link href="/dashboard" className="text-gray-700 hover:text-blue-600 transition-colors">
+                <Link
+                  href="/dashboard"
+                  className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                >
                   대시보드
                 </Link>
-                <Link href="/courses" className="text-gray-700 hover:text-blue-600 transition-colors">
+                <Link
+                  href="/courses"
+                  className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                >
                   강의
                 </Link>
-                <Link href="/board/notice" className="text-gray-700 hover:text-blue-600 transition-colors">
+                <Link
+                  href="/board/notice"
+                  className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                >
                   공지사항
                 </Link>
-                <Link href="/board/resource" className="text-gray-700 hover:text-blue-600 transition-colors">
+                <Link
+                  href="/board/resource"
+                  className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                >
                   자료실
                 </Link>
               </>
@@ -51,25 +65,28 @@ export default function Header() {
           </div>
 
           {/* 사용자 메뉴 */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             {loading ? (
-              <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
+              <div className="w-8 h-8 bg-purple-100 rounded-full animate-pulse" />
             ) : user ? (
               <div className="flex items-center space-x-3">
-                <Link href="/mypage" className="text-sm text-gray-700 hover:text-blue-600">
+                <Link
+                  href="/mypage"
+                  className="text-sm text-gray-600 hover:text-purple-600 font-medium transition-colors"
+                >
                   {profile?.name || user.email}
                 </Link>
                 {profile?.role === 'admin' && (
                   <Link
                     href="/admin/courses"
-                    className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded"
+                    className="text-xs bg-gradient-to-r from-purple-600 to-teal-500 text-white px-3 py-1 rounded-full font-medium"
                   >
                     관리자
                   </Link>
                 )}
                 <button
                   onClick={handleLogout}
-                  className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                  className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   로그아웃
                 </button>
@@ -78,13 +95,13 @@ export default function Header() {
               <div className="flex items-center space-x-2">
                 <Link
                   href="/login"
-                  className="text-sm text-gray-700 hover:text-blue-600 transition-colors"
+                  className="text-sm text-gray-600 hover:text-purple-600 font-medium transition-colors px-4 py-2"
                 >
                   로그인
                 </Link>
                 <Link
                   href="/signup"
-                  className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="text-sm bg-gradient-to-r from-purple-600 to-purple-700 text-white px-5 py-2 rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-200 transition-all hover:scale-105"
                 >
                   회원가입
                 </Link>
@@ -94,9 +111,9 @@ export default function Header() {
             {/* 모바일 메뉴 버튼 */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+              className="md:hidden p-2 rounded-xl hover:bg-purple-50 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {mobileMenuOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
@@ -109,21 +126,21 @@ export default function Header() {
 
         {/* 모바일 메뉴 */}
         {mobileMenuOpen && user && (
-          <div className="md:hidden py-3 border-t border-gray-200">
-            <div className="flex flex-col space-y-2">
-              <Link href="/dashboard" className="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+          <div className="md:hidden py-3 border-t border-purple-100 animate-fade-in">
+            <div className="flex flex-col space-y-1">
+              <Link href="/dashboard" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">
                 대시보드
               </Link>
-              <Link href="/courses" className="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+              <Link href="/courses" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">
                 강의
               </Link>
-              <Link href="/board/notice" className="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+              <Link href="/board/notice" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">
                 공지사항
               </Link>
-              <Link href="/board/resource" className="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+              <Link href="/board/resource" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">
                 자료실
               </Link>
-              <Link href="/mypage" className="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+              <Link href="/mypage" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">
                 마이페이지
               </Link>
             </div>
