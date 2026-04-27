@@ -41,21 +41,13 @@ export default function Header() {
             {loading ? (
               <div className="w-8 h-8 bg-purple-100 rounded-full animate-pulse" />
             ) : user ? (
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
                 <Link href="/mypage" className="text-sm text-gray-600 hover:text-purple-600 font-medium transition-colors">{profile?.name || user.email}</Link>
                 {profile?.role === 'admin' && (
-                  <Link
-                    href="/admin/courses"
-                    className="text-xs bg-gradient-to-r from-purple-600 to-teal-500 text-white px-3 py-1 rounded-full font-medium"
-                  >
-                    강좌관리
-                  </Link>
-                  <Link
-                    href="/admin/groups"
-                    className="text-xs bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-3 py-1 rounded-full font-medium"
-                  >
-                    그룹관리
-                  </Link>
+                  <>
+                    <Link href="/admin/courses" className="text-xs bg-gradient-to-r from-purple-600 to-teal-500 text-white px-3 py-1 rounded-full font-medium">강좌관리</Link>
+                    <Link href="/admin/groups" className="text-xs bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-3 py-1 rounded-full font-medium">그룹관리</Link>
+                  </>
                 )}
                 <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">로그아웃</button>
               </div>
@@ -77,7 +69,7 @@ export default function Header() {
           </div>
         </div>
         {mobileMenuOpen && user && (
-          <div className="md:hidden py-3 border-t border-purple-100 animate-fade-in">
+          <div className="md:hidden py-3 border-t border-purple-100">
             <div className="flex flex-col space-y-1">
               <Link href="/dashboard" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">대시보드</Link>
               <Link href="/courses" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">강의</Link>
