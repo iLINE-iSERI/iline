@@ -20,17 +20,14 @@ function DashboardContent() {
 
   useEffect(() => {
     if (!user?.uid) return;
-
     const loadEnrollments = async () => {
       try {
         const enrollmentList = await getUserEnrollments(user.uid);
-
         const courseDataPromises = enrollmentList.map(async (enrollment) => {
           const course = await getCourse(enrollment.courseId);
           const progress = await getProgress(user.uid, enrollment.courseId);
           return { enrollment, course: course as Course, progress };
         });
-
         const courseData = await Promise.all(courseDataPromises);
         setEnrollments(courseData);
       } catch (error) {
@@ -39,7 +36,6 @@ function DashboardContent() {
         setLoading(false);
       }
     };
-
     loadEnrollments();
   }, [user?.uid]);
 
@@ -53,20 +49,19 @@ function DashboardContent() {
               <div key={i} className="h-28 bg-purple-50 rounded-2xl"></div>
             ))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-64 bg-gray-100 rounded-2xl"></div>
-            ))}
-          </div>
         </div>
       </div>
     );
   }
 
+  const completedCount = enrollments.filter((e) => e.progress?.completed).length;
+  const totalHours = Math.floor(
+    enrollments.reduce((acc, e) => acc + (e.progress?.watchedSeconds || 0), 0) / 3600
+  );
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* 환영 메시지 */}
-      <div className="mb-10 animate-fade-in-up">
+      <div className="mb-10">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium mb-3">
           대시보드
         </div>
@@ -76,7 +71,6 @@ function DashboardContent() {
         <p className="text-gray-500">학습을 계속하세요</p>
       </div>
 
-      {/* 학습 통계 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         <div className="card-hover bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-6 text-white">
           <div className="flex items-center justify-between mb-3">
@@ -99,9 +93,7 @@ function DashboardContent() {
               </svg>
             </div>
           </div>
-          <div className="text-4xl font-bold">
-            {enrollments.filter((e) => e.progress?.completed).length}
-          </div>
+          <div className="text-4xl font-bold">{completedCount}</div>
         </div>
 
         <div className="card-hover bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-6 text-white">
@@ -113,42 +105,73 @@ function DashboardContent() {
               </svg>
             </div>
           </div>
-          <div className="text-4xl font-bold">
-            {Math.floor(
-              enrollments.reduce((acc, e) => acc + (e.progress?.watchedSeconds || 0), 0) / 3600
-            )}h
-          </div>
+          <div className="text-4xl font-bold">{totalHours}h</div>
         </div>
       </div>
 
-      {/* 등록된 강좌 */}
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">나의 강좌</h2>
-
         {enrollments.length === 0 ? (
           <div className="text-center py-16 bg-gradient-to-br from-purple-50 to-teal-50 rounded-3xl border border-purple-100">
-            <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
             <p className="text-gray-500 mb-6">아직 등록된 강좌가 없습니다</p>
             <Link
               href="/courses"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all hover:shadow-lg hover:shadow-purple-200 hover:scale-105"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold py-3 px-8 rounded-xl hover:shadow-lg hover:shadow-purple-200"
             >
               강좌 탐색하기
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {enrollments.map((item) => {
-              const progressPercent = item.course
-                ? Math.min(
-                    100,
-                    Math.round(
-                      ((item.progress?.watchedSeconds || 0) /
-                        Math.max(
+              const progressPercent = Math.min(100, Math.round(((item.progress?.watchedSeconds || 0) / 600) * 100));
+              const categoryColors: Record<string, string> = {
+                'ai-basic': 'from-purple-500 to-purple-600',
+                'ai-ethics': 'from-teal-500 to-teal-600',
+                'coding': 'from-blue-500 to-blue-600',
+              };
+              const categoryNames: Record<string, string> = {
+                'ai-basic': 'AI 기초',
+                'ai-ethics': 'AI 윤리',
+                'coding': '코딩',
+              };
+              return (
+                <Link key={item.enrollment.id} href={`/courses/${item.course.id}`} className="card-hover bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="relative">
+                    <img src={item.course.thumbnailUrl} alt={item.course.title} className="w-full h-40 object-cover" />
+                    <span className={`absolute top-3 right-3 bg-gradient-to-r ${categoryColors[item.course.category]} text-white text-xs font-semibold px-3 py-1 rounded-full`}>
+                      {categoryNames[item.course.category]}
+                    </span>
+                  </div>
+                  <div className="p-5">
+                    <h3 className="font-bold text-gray-900 mb-3 line-clamp-2">{item.course.title}</h3>
+                    <div className="flex items-center gap-2 text-sm">
+                      {item.progress?.completed ? (
+                        <span className="text-teal-600 font-semibold">완료</span>
+                      ) : (
+                        <>
+                          <div className="flex-grow bg-gray-100 rounded-full h-2">
+                            <div className="progress-gradient h-2 rounded-full" style={{ width: `${progressPercent}%` }}></div>
+                          </div>
+                          <span className="text-xs font-medium text-purple-600">{progressPercent}%</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <AuthGuard>
+      <DashboardContent />
+    </AuthGuard>
+  );
+}
