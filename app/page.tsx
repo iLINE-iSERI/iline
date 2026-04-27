@@ -19,18 +19,18 @@ export default function HomePage() {
             <div className="text-center animate-fade-in-up">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-dark text-sm font-medium mb-8">
                 <span className="w-2 h-2 bg-teal-400 rounded-full animate-pulse-soft" />
-                무료 공공 교육 플랫폼
+                AI 공공 교육 플랫폼
               </div>
 
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-                AI 교육의
+                나에게 딱 맞는
                 <br />
                 <span className="bg-gradient-to-r from-teal-300 to-emerald-300 bg-clip-text text-transparent">
-                  새로운 기준
+                  인공지능 라인
                 </span>
               </h1>
               <p className="text-lg md:text-xl text-purple-100 mb-10 max-w-2xl mx-auto leading-relaxed">
-                초중고 학생과 교사를 위한 체계적인 인공지능 교육 플랫폼.
+                모두를 위한 체계적인 인공지능 교육 플랫폼.
                 <br className="hidden sm:block" />
                 동영상 강의와 실습으로 AI 역량을 키워보세요.
               </p>
@@ -57,11 +57,11 @@ export default function HomePage() {
                 </div>
                 <div className="text-center">
                   <div className="text-3xl md:text-4xl font-bold text-white">Free</div>
-                  <div className="text-sm text-purple-200 mt-1">완전 무료</div>
+                  <div className="text-sm text-purple-200 mt-1"> 무료 콘텐츠 </div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl md:text-4xl font-bold text-white">K-12</div>
-                  <div className="text-sm text-purple-200 mt-1">초중고 대상</div>
+                  <div className="text-sm text-purple-200 mt-1">AI 교육이 필요한 누구나</div>
                 </div>
               </div>
             </div>
@@ -73,13 +73,13 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium mb-4">
-                왜 iLINE인가요?
+               iLINE에는
               </div>
               <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">
-                학습을 위한 <span className="gradient-text">최적의 환경</span>
+                AI 학습을 위한 <span className="gradient-text">최적의 환경</span>
               </h2>
               <p className="text-gray-500 text-lg max-w-xl mx-auto">
-                학생과 교사 모두를 위한 체계적이고 직관적인 교육 도구를 제공합니다
+                유아부터 시니어까지 모두를 위한 체계적이고 직관적인 교육을 제공합니다
               </p>
             </div>
 
