@@ -44,7 +44,18 @@ export default function Header() {
               <div className="flex items-center space-x-3">
                 <Link href="/mypage" className="text-sm text-gray-600 hover:text-purple-600 font-medium transition-colors">{profile?.name || user.email}</Link>
                 {profile?.role === 'admin' && (
-                  <Link href="/admin/courses" className="text-xs bg-gradient-to-r from-purple-600 to-teal-500 text-white px-3 py-1 rounded-full font-medium">관리자</Link>
+                  <Link
+                    href="/admin/courses"
+                    className="text-xs bg-gradient-to-r from-purple-600 to-teal-500 text-white px-3 py-1 rounded-full font-medium"
+                  >
+                    강좌관리
+                  </Link>
+                  <Link
+                    href="/admin/groups"
+                    className="text-xs bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-3 py-1 rounded-full font-medium"
+                  >
+                    그룹관리
+                  </Link>
                 )}
                 <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">로그아웃</button>
               </div>
