@@ -14,12 +14,10 @@ interface EnrolledCourseData {
 }
 
 function DashboardContent() {
-  // 상태 관리
   const { user, userProfile } = useAuth();
   const [enrollments, setEnrollments] = useState<EnrolledCourseData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 등록된 강좌 불러오기
   useEffect(() => {
     if (!user?.uid) return;
 
@@ -49,10 +47,15 @@ function DashboardContent() {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
+          <div className="h-8 bg-purple-100 rounded-xl w-1/4 mb-8"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-28 bg-purple-50 rounded-2xl"></div>
+            ))}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-64 bg-gray-200 rounded-lg"></div>
+              <div key={i} className="h-64 bg-gray-100 rounded-2xl"></div>
             ))}
           </div>
         </div>
@@ -63,32 +66,57 @@ function DashboardContent() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* 환영 메시지 */}
-      <div className="mb-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">
-          환영합니다, {userProfile?.name}님!
+      <div className="mb-10 animate-fade-in-up">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium mb-3">
+          대시보드
+        </div>
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+          환영합니다, <span className="gradient-text">{userProfile?.name}</span>님!
         </h1>
-        <p className="text-lg text-gray-600">학습을 계속하세요</p>
+        <p className="text-gray-500">학습을 계속하세요</p>
       </div>
 
       {/* 학습 통계 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-          <div className="text-sm font-semibold text-blue-600 mb-2">등록된 강좌</div>
-          <div className="text-3xl font-bold text-gray-900">{enrollments.length}</div>
+        <div className="card-hover bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-6 text-white">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-medium text-purple-200">등록된 강좌</div>
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+          </div>
+          <div className="text-4xl font-bold">{enrollments.length}</div>
         </div>
-        <div className="bg-green-50 rounded-lg p-6 border border-green-200">
-          <div className="text-sm font-semibold text-green-600 mb-2">완료된 강좌</div>
-          <div className="text-3xl font-bold text-gray-900">
+
+        <div className="card-hover bg-gradient-to-br from-teal-500 to-teal-700 rounded-2xl p-6 text-white">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-medium text-teal-200">완료된 강좌</div>
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="text-4xl font-bold">
             {enrollments.filter((e) => e.progress?.completed).length}
           </div>
         </div>
-        <div className="bg-purple-50 rounded-lg p-6 border border-purple-200">
-          <div className="text-sm font-semibold text-purple-600 mb-2">총 학습 시간</div>
-          <div className="text-3xl font-bold text-gray-900">
+
+        <div className="card-hover bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-6 text-white">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-medium text-blue-200">총 학습 시간</div>
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="text-4xl font-bold">
             {Math.floor(
               enrollments.reduce((acc, e) => acc + (e.progress?.watchedSeconds || 0), 0) / 3600
-            )}
-            h
+            )}h
           </div>
         </div>
       </div>
@@ -98,13 +126,21 @@ function DashboardContent() {
         <h2 className="text-2xl font-bold text-gray-900 mb-6">나의 강좌</h2>
 
         {enrollments.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <p className="text-gray-600 mb-4">아직 등록된 강좌가 없습니다</p>
+          <div className="text-center py-16 bg-gradient-to-br from-purple-50 to-teal-50 rounded-3xl border border-purple-100">
+            <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <p className="text-gray-500 mb-6">아직 등록된 강좌가 없습니다</p>
             <Link
               href="/courses"
-              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold py-3 px-8 rounded-xl transition-all hover:shadow-lg hover:shadow-purple-200 hover:scale-105"
             >
               강좌 탐색하기
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
             </Link>
           </div>
         ) : (
@@ -116,72 +152,3 @@ function DashboardContent() {
                     Math.round(
                       ((item.progress?.watchedSeconds || 0) /
                         Math.max(
-                          parseInt(
-                            item.course.youtubeUrl
-                              .match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^&\n?#]+)/)?.[0] ||
-                                '0'
-                          ) || 600,
-                          600
-                        )) *
-                        100
-                    )
-                  )
-                : 0;
-
-              return (
-                <Link
-                  key={item.enrollment.id}
-                  href={`/courses/${item.course.id}`}
-                  className="bg-white rounded-lg shadow hover:shadow-lg transition overflow-hidden"
-                >
-                  <div className="relative">
-                    <img
-                      src={item.course.thumbnailUrl}
-                      alt={item.course.title}
-                      className="w-full h-40 object-cover"
-                    />
-                    <span className="absolute top-2 right-2 bg-blue-600 text-white text-xs font-semibold px-2 py-1 rounded">
-                      {item.course.category === 'ai-basic'
-                        ? 'AI 기초'
-                        : item.course.category === 'ai-ethics'
-                          ? 'AI 윤리'
-                          : '코딩'}
-                    </span>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                      {item.course.title}
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                      {item.progress?.completed ? (
-                        <span className="text-green-600 font-semibold">완료</span>
-                      ) : (
-                        <>
-                          <div className="flex-grow bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-blue-600 h-2 rounded-full transition-all"
-                              style={{ width: `${progressPercent}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-xs">{progressPercent}%</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function DashboardPage() {
-  return (
-    <AuthGuard>
-      <DashboardContent />
-    </AuthGuard>
-  );
-}
