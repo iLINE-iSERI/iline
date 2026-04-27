@@ -52,16 +52,16 @@ export default function HomePage() {
 
               <div className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto">
                 <div className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold text-white">3+</div>
+                  <div className="text-3xl md:text-4xl font-bold text-white">K-12</div>
+                  <div className="text-sm text-purple-200 mt-1"> 초중고 학생 콘텐츠 </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-white">-100</div>
                   <div className="text-sm text-purple-200 mt-1"> 다양한 콘텐츠 </div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl md:text-4xl font-bold text-white">Free</div>
-                  <div className="text-sm text-purple-200 mt-1"> 무료 콘텐츠 </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold text-white">K-12</div>
-                  <div className="text-sm text-purple-200 mt-1">초중고 학생 콘텐츠</div>
+                  <div className="text-sm text-purple-200 mt-1">무료 콘텐츠</div>
                 </div>
               </div>
             </div>
