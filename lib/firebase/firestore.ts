@@ -14,7 +14,7 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { db } from './config'
-import type { Course, UserProfile, Enrollment, Progress, Post } from '@/lib/types'
+import type { Course, UserProfile, Enrollment, Progress, Post, StudentGroup } from '@/lib/types'
 
 // ===== Users =====
 export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt'>) {
@@ -44,6 +44,50 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
     await updateDoc(doc(db, 'users', uid), { ...data })
   } catch (error) {
     console.error('사용자 프로필 업데이트 에러:', error)
+    throw error
+  }
+}
+
+// ===== Student Groups =====
+export async function getGroups(): Promise<StudentGroup[]> {
+  try {
+    const q = query(collection(db, 'groups'), orderBy('order', 'asc'))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as StudentGroup))
+  } catch (error) {
+    console.error('그룹 목록 조회 에러:', error)
+    throw error
+  }
+}
+
+export async function createGroup(data: { name: string; order: number }) {
+  try {
+    const docRef = doc(collection(db, 'groups'))
+    await setDoc(docRef, {
+      ...data,
+      createdAt: serverTimestamp(),
+    })
+    return docRef.id
+  } catch (error) {
+    console.error('그룹 생성 에러:', error)
+    throw error
+  }
+}
+
+export async function updateGroup(groupId: string, data: { name?: string; order?: number }) {
+  try {
+    await updateDoc(doc(db, 'groups', groupId), { ...data })
+  } catch (error) {
+    console.error('그룹 업데이트 에러:', error)
+    throw error
+  }
+}
+
+export async function deleteGroup(groupId: string) {
+  try {
+    await deleteDoc(doc(db, 'groups', groupId))
+  } catch (error) {
+    console.error('그룹 삭제 에러:', error)
     throw error
   }
 }
