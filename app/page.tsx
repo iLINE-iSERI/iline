@@ -23,10 +23,10 @@ export default function HomePage() {
               </div>
 
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-                나에게 딱 맞는
+                나에게 딱 맞는 인공지능 라인
                 <br />
                 <span className="bg-gradient-to-r from-teal-300 to-emerald-300 bg-clip-text text-transparent">
-                  인공지능 라인
+                
                 </span>
               </h1>
               <p className="text-lg md:text-xl text-purple-100 mb-10 max-w-2xl mx-auto leading-relaxed">
@@ -73,7 +73,7 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium mb-4">
-               iLINE에는
+               iLINE은
               </div>
               <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">
                 AI 학습을 위한 <span className="gradient-text">최적의 환경</span>
