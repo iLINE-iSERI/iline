@@ -14,17 +14,24 @@ import { auth, db } from './config'
 const googleProvider = new GoogleAuthProvider()
 
 // 이메일/비밀번호 회원가입
-export async function signUpWithEmail(email: string, password: string, name: string) {
+export async function signUpWithEmail(
+  email: string,
+  password: string,
+  name: string,
+  birthDate: string,
+  group: string
+) {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     const user = userCredential.user
 
-    // Firestore에 사용자 문서 생성
     await setDoc(doc(db, 'users', user.uid), {
       uid: user.uid,
       email: user.email,
       name,
-      role: 'student', // 기본 역할: 학생
+      birthDate,
+      group,
+      role: 'student',
       createdAt: serverTimestamp(),
       photoURL: user.photoURL || null,
     })
@@ -53,13 +60,14 @@ export async function signInWithGoogle() {
     const result = await signInWithPopup(auth, googleProvider)
     const user = result.user
 
-    // Firestore에 사용자 문서가 없으면 생성 (최초 Google 로그인)
     const userDoc = await getDoc(doc(db, 'users', user.uid))
     if (!userDoc.exists()) {
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         email: user.email,
         name: user.displayName || '사용자',
+        birthDate: '',
+        group: '',
         role: 'student',
         createdAt: serverTimestamp(),
         photoURL: user.photoURL || null,
