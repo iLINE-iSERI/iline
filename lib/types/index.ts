@@ -7,8 +7,18 @@ export interface UserProfile {
   email: string
   name: string
   role: 'student' | 'teacher' | 'admin'
+  group: string
+  birthDate: string
   createdAt: Timestamp
   photoURL?: string
+}
+
+// 교육생 그룹
+export interface StudentGroup {
+  id: string
+  name: string
+  order: number
+  createdAt: Timestamp
 }
 
 // 강의
