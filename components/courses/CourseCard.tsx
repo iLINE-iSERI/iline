@@ -6,13 +6,13 @@ interface CourseCardProps {
 }
 
 export default function CourseCard({ course }: CourseCardProps) {
-  const categoryLabel = {
+  const categoryLabel: Record<string, string> = {
     'ai-basic': 'AI 기초',
     'ai-ethics': 'AI 윤리',
     'coding': '코딩',
   };
 
-  const categoryGradient = {
+  const categoryGradient: Record<string, string> = {
     'ai-basic': 'from-purple-500 to-purple-600',
     'ai-ethics': 'from-teal-500 to-teal-600',
     'coding': 'from-blue-500 to-blue-600',
