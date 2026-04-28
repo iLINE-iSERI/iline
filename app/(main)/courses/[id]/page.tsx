@@ -146,7 +146,7 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
   }
 
   // 카테고리 한글 매핑
-  const categoryLabel = {
+  const categoryLabel: Record<string, string> = {
     'ai-basic': 'AI 기초',
     'ai-ethics': 'AI 윤리',
     'coding': '코딩',
