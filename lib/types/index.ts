@@ -13,10 +13,11 @@ export interface UserProfile {
   photoURL?: string
 }
 
-// 교육생 그룹
-export interface StudentGroup {
+// 카테고리
+export interface Category {
   id: string
   name: string
+  slug: string
   order: number
   createdAt: Timestamp
 }
@@ -28,7 +29,7 @@ export interface Course {
   description: string
   youtubeUrl: string
   thumbnailUrl: string
-  category: 'ai-basic' | 'ai-ethics' | 'coding'
+  category: string
   order: number
   isPublished: boolean
   createdAt: Timestamp
@@ -63,4 +64,12 @@ export interface Post {
   attachmentUrl?: string
   createdAt: Timestamp
   updatedAt: Timestamp
+}
+
+// 학생 그룹
+export interface StudentGroup {
+  id: string
+  name: string
+  order: number
+  createdAt: Timestamp
 }
