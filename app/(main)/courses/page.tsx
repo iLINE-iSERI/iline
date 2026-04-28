@@ -1,46 +1,55 @@
 'use client';
+
 import { useEffect, useState } from 'react';
-import { getCourses } from '@/lib/firebase/firestore';
+import { getCourses, getCategories } from '@/lib/firebase/firestore';
 import AuthGuard from '@/components/auth/AuthGuard';
 import CourseCard from '@/components/courses/CourseCard';
-import type { Course } from '@/lib/types';
+import type { Course, Category } from '@/lib/types';
 
 function CoursesContent() {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cat, setCat] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const defaultCats = [
+    { id: '1', name: 'AI 기초', slug: 'ai-basic', order: 0 },
+    { id: '2', name: 'AI 윤리', slug: 'ai-ethics', order: 1 },
+    { id: '3', name: '코딩', slug: 'coding', order: 2 },
+  ];
 
   useEffect(() => {
-    const load = async () => {
+    const loadData = async () => {
       try {
-        const all = await getCourses();
-        setCourses(all.filter((c) => c.isPublished));
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
+        const [allCourses, allCats] = await Promise.all([
+          getCourses(),
+          getCategories(),
+        ]);
+        setCourses(allCourses);
+        setCategories(allCats as Category[]);
+      } catch (error) {
+        console.error('데이터 로드 실패:', error);
+      } finally {
+        setLoading(false);
+      }
     };
-    load();
+    loadData();
   }, []);
 
-  const grouped = {
-    'ai-basic': courses.filter((c) => c.category === 'ai-basic'),
-    'ai-ethics': courses.filter((c) => c.category === 'ai-ethics'),
-    'coding': courses.filter((c) => c.category === 'coding'),
-  };
-  const filtered = cat ? grouped[cat as keyof typeof grouped] : courses;
-  const tabs = [
-    { key: null, label: '모든 강좌' },
-    { key: 'ai-basic', label: 'AI 기초' },
-    { key: 'ai-ethics', label: 'AI 윤리' },
-    { key: 'coding', label: '코딩' },
-  ];
+  const activeCats = categories.length > 0 ? categories : defaultCats;
+  const filteredCourses = selectedCategory
+    ? courses.filter(c => c.category === selectedCategory)
+    : courses;
 
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="animate-pulse">
-          <div className="h-10 bg-purple-100 rounded-xl w-1/4 mb-8"></div>
+          <div className="h-10 bg-gray-200 rounded w-1/4 mb-8"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1,2,3].map((i) => <div key={i} className="h-80 bg-gray-100 rounded-2xl"></div>)}
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="h-80 bg-gray-200 rounded-lg"></div>
+            ))}
           </div>
         </div>
       </div>
@@ -50,26 +59,47 @@ function CoursesContent() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium mb-3">강의 목록</div>
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">강좌 탐색</h1>
-        <p className="text-gray-500">다양한 AI 교육 강좌를 둘러보세요</p>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">강좌 탐색</h1>
+        <p className="text-lg text-gray-600">다양한 AI 교육 강좌를 둘러보세요</p>
       </div>
+
+      {/* 동적 카테고리 필터 */}
       <div className="flex gap-2 mb-8 flex-wrap">
-        {tabs.map((t) => (
-          <button key={t.key || 'all'} onClick={() => setCat(t.key)}
-            className={`px-5 py-2.5 rounded-full font-medium text-sm transition-all ${cat === t.key ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-200' : 'bg-white text-gray-600 hover:bg-purple-50 border border-gray-200'}`}>
-            {t.label}
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className={`px-4 py-2 rounded-full font-semibold transition ${
+            selectedCategory === null
+              ? 'bg-gradient-to-r from-teal-500 to-blue-500 text-white'
+              : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+          }`}
+        >
+          모든 강좌
+        </button>
+        {activeCats.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategory(cat.slug)}
+            className={`px-4 py-2 rounded-full font-semibold transition ${
+              selectedCategory === cat.slug
+                ? 'bg-gradient-to-r from-teal-500 to-blue-500 text-white'
+                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+            }`}
+          >
+            {cat.name}
           </button>
         ))}
       </div>
-      {filtered.length === 0 ? (
-        <div className="text-center py-16 bg-gradient-to-br from-purple-50 to-teal-50 rounded-3xl border border-purple-100">
-          <p className="text-gray-500 text-lg">강좌가 없습니다</p>
-          <p className="text-gray-400 text-sm mt-1">곧 새로운 강좌가 추가될 예정입니다</p>
+
+      {/* 강좌 그리드 */}
+      {filteredCourses.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-600 text-lg">강좌가 없습니다</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((course) => <CourseCard key={course.id} course={course} />)}
+          {filteredCourses.map(course => (
+            <CourseCard key={course.id} course={course} />
+          ))}
         </div>
       )}
     </div>
@@ -77,5 +107,9 @@ function CoursesContent() {
 }
 
 export default function CoursesPage() {
-  return <AuthGuard><CoursesContent /></AuthGuard>;
+  return (
+    <AuthGuard>
+      <CoursesContent />
+    </AuthGuard>
+  );
 }
