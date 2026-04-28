@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
+import { HeroButtons, CtaButton } from '@/components/home/ActionButton'
 
 export default function HomePage() {
   return (
@@ -31,15 +32,7 @@ export default function HomePage() {
                 <br className="hidden sm:block" />
                 동영상 강의와 실습으로 AI 역량을 키워보세요.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/signup" className="group relative bg-white text-teal-700 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-teal-50 transition-all hover:scale-105 hover:shadow-2xl shadow-lg">
-                  무료로 시작하기
-                  <span className="inline-block ml-2 transition-transform group-hover:translate-x-1">&rarr;</span>
-                </Link>
-                <Link href="/courses" className="glass-dark text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-white/20 transition-all">
-                  강의 둘러보기
-                </Link>
-              </div>
+              <HeroButtons />
               <div className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto">
                 <div className="text-center">
                   <div className="text-3xl md:text-4xl font-bold text-white">K-12</div>
@@ -83,9 +76,7 @@ export default function HomePage() {
                   </svg>
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">동영상 강의</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  전문 강사진이 제작한 체계적인 AI 교육 영상으로 언제 어디서나 학습하세요.
-                </p>
+                <p className="text-gray-600 leading-relaxed">전문 강사진이 제작한 체계적인 AI 교육 영상으로 언제 어디서나 학습하세요.</p>
               </div>
               <div className="card-hover group relative bg-gradient-to-br from-blue-50 to-white p-8 rounded-3xl border border-blue-100">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
@@ -96,9 +87,7 @@ export default function HomePage() {
                   </svg>
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">학습 진도 관리</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  개인별 학습 진도를 자동으로 추적하고 완료 현황을 한눈에 확인하세요.
-                </p>
+                <p className="text-gray-600 leading-relaxed">개인별 학습 진도를 자동으로 추적하고 완료 현황을 한눈에 확인하세요.</p>
               </div>
               <div className="card-hover group relative bg-gradient-to-br from-cyan-50 to-white p-8 rounded-3xl border border-cyan-100">
                 <div className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-cyan-200 group-hover:scale-110 transition-transform">
@@ -111,9 +100,7 @@ export default function HomePage() {
                   </svg>
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">체계적 커리큘럼</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  AI 기초부터 AI 윤리, 코딩까지. 교육과정에 맞춘 단계별 학습 경로를 제공합니다.
-                </p>
+                <p className="text-gray-600 leading-relaxed">AI 기초부터 AI 윤리, 코딩까지. 교육과정에 맞춘 단계별 학습 경로를 제공합니다.</p>
               </div>
             </div>
           </div>
@@ -160,12 +147,7 @@ export default function HomePage() {
               무료 계정으로 모든 강의를 수강할 수 있습니다.
               초중고 학생과 교사 누구나 환영합니다.
             </p>
-            <Link href="/signup" className="inline-flex items-center gap-2 bg-white text-teal-700 px-10 py-4 rounded-2xl font-bold text-lg hover:bg-teal-50 transition-all hover:scale-105 shadow-2xl">
-              무료 회원가입
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Link>
+            <CtaButton />
           </div>
         </section>
       </main>
