@@ -5,23 +5,17 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import AuthGuard from '@/components/auth/AuthGuard';
 import YouTubePlayer from '@/components/courses/YouTubePlayer';
 import {
-  getCourse,
-  enrollCourse,
-  updateProgress,
-  getProgress,
-  getUserEnrollments,
+  getCourse, enrollCourse, updateProgress, getProgress,
+  getUserEnrollments, getCategories,
 } from '@/lib/firebase/firestore';
-import type { Course, Progress } from '@/lib/types';
+import type { Course, Progress, Category } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
 interface CourseDetailProps {
-  params: {
-    id: string;
-  };
+  params: { id: string };
 }
 
 function CourseDetailContent({ courseId }: { courseId: string }) {
-  // 상태 관리
   const { user } = useAuth();
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
@@ -30,23 +24,29 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [lastWatchedSeconds, setLastWatchedSeconds] = useState(0);
+  const [catMap, setCatMap] = useState<Record<string, string>>({});
 
-  // 강좌 정보 불러오기
   useEffect(() => {
     if (!courseId) return;
-
     const loadCourse = async () => {
       try {
-        const courseData = await getCourse(courseId);
+        const [courseData, cats] = await Promise.all([
+          getCourse(courseId),
+          getCategories(),
+        ]);
         setCourse(courseData as Course);
 
-        if (user?.uid) {
-          // 등록 여부 확인
-          const enrollments = await getUserEnrollments(user.uid);
-          const enrolled = enrollments.some((e) => e.courseId === courseId);
-          setIsEnrolled(enrolled);
+        // 카테고리 slug→name 매핑
+        const map: Record<string, string> = {
+          'ai-basic': 'AI 기초', 'ai-ethics': 'AI 윤리', 'coding': '코딩',
+        };
+        (cats as Category[]).forEach(c => { map[c.slug] = c.name; });
+        setCatMap(map);
 
-          // 진도 정보 불러오기
+        if (user?.uid) {
+          const enrollments = await getUserEnrollments(user.uid);
+          const enrolled = enrollments.some(e => e.courseId === courseId);
+          setIsEnrolled(enrolled);
           if (enrolled) {
             const progressData = await getProgress(user.uid, courseId);
             setProgress(progressData);
@@ -59,20 +59,15 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
         setLoading(false);
       }
     };
-
     loadCourse();
   }, [courseId, user?.uid]);
 
-  // 강좌 등록
   const handleEnroll = async () => {
     if (!user?.uid) return;
     setEnrolling(true);
-
     try {
       await enrollCourse(user.uid, courseId);
       setIsEnrolled(true);
-
-      // 초기 진도 정보 생성
       const progressData = await getProgress(user.uid, courseId);
       setProgress(progressData);
     } catch (error) {
@@ -83,40 +78,23 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
     }
   };
 
-  // 진도 업데이트
   const handleProgressUpdate = async (seconds: number) => {
-    if (!user?.uid || !progress) return;
-
-    // 5초마다 업데이트하도록 쓰로틀링
+    if (!user?.uid || !isEnrolled) return;
     if (Math.abs(seconds - lastWatchedSeconds) < 5) return;
-
     setLastWatchedSeconds(seconds);
-
     try {
-      await updateProgress(user.uid, courseId, {
-        watchedSeconds: seconds,
-      });
-
-      setProgress((prev) =>
-        prev ? { ...prev, watchedSeconds: seconds } : null
-      );
+      await updateProgress(user.uid, courseId, { watchedSeconds: seconds });
+      setProgress(prev => prev ? { ...prev, watchedSeconds: seconds } : null);
     } catch (error) {
       console.error('진도 업데이트 실패:', error);
     }
   };
 
-  // 강좌 완료 표시
   const handleMarkComplete = async () => {
     if (!user?.uid) return;
-
     try {
-      await updateProgress(user.uid, courseId, {
-        completed: true,
-      });
-
-      setProgress((prev) =>
-        prev ? { ...prev, completed: true } : null
-      );
+      await updateProgress(user.uid, courseId, { completed: true });
+      setProgress(prev => prev ? { ...prev, completed: true } : null);
       alert('강좌가 완료되었습니다!');
     } catch (error) {
       console.error('완료 처리 실패:', error);
@@ -145,37 +123,20 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
     );
   }
 
-  // 카테고리 한글 매핑
-  const categoryLabel: Record<string, string> = {
-    'ai-basic': 'AI 기초',
-    'ai-ethics': 'AI 윤리',
-    'coding': '코딩',
-  };
-
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* 뒤로가기 버튼 */}
-      <button
-        onClick={() => router.back()}
-        className="text-blue-600 hover:text-blue-700 font-semibold mb-6"
-      >
+      <button onClick={() => router.back()} className="text-teal-600 hover:text-teal-700 font-semibold mb-6">
         ← 돌아가기
       </button>
 
-      {/* 비디오 플레이어 */}
-      <YouTubePlayer
-        videoUrl={course.youtubeUrl}
-        title={course.title}
-        onProgress={handleProgressUpdate}
-      />
+      <YouTubePlayer videoUrl={course.youtubeUrl} title={course.title} onProgress={handleProgressUpdate} />
 
-      {/* 강좌 정보 */}
       <div className="mt-8">
         <div className="flex items-start justify-between mb-4">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
-                {categoryLabel[course.category]}
+              <span className="bg-teal-100 text-teal-800 text-xs font-semibold px-3 py-1 rounded-full">
+                {catMap[course.category] || course.category}
               </span>
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">{course.title}</h1>
@@ -185,12 +146,10 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
 
         {/* 진도 표시 */}
         {isEnrolled && progress && (
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="mt-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
             <div className="flex items-center justify-between mb-2">
               <span className="font-semibold text-gray-900">학습 진도</span>
-              <span className="text-sm text-gray-600">
-                {progress.watchedSeconds}초 시청
-              </span>
+              <span className="text-sm text-gray-600">{progress.watchedSeconds}초 시청</span>
             </div>
             {progress.completed && (
               <div className="text-green-600 font-semibold">✓ 완료됨</div>
@@ -204,9 +163,9 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
             <button
               onClick={handleEnroll}
               disabled={enrolling}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition flex-1"
+              className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition flex-1"
             >
-              {enrolling ? '등록 중...' : '강좌 등록하기'}
+              {enrolling ? '등록 중...' : '수강 신청하기'}
             </button>
           ) : (
             <>
