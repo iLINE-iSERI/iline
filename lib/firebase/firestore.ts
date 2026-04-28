@@ -1,17 +1,7 @@
 // Firestore DB 함수 모음
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-  Timestamp,
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+  query, where, orderBy, serverTimestamp,
 } from 'firebase/firestore'
 import { db } from './config'
 import type { Course, UserProfile, Enrollment, Progress, Post, StudentGroup, Category } from '@/lib/types'
@@ -19,10 +9,7 @@ import type { Course, UserProfile, Enrollment, Progress, Post, StudentGroup, Cat
 // ===== Users =====
 export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt'>) {
   try {
-    await setDoc(doc(db, 'users', uid), {
-      ...data,
-      createdAt: serverTimestamp(),
-    })
+    await setDoc(doc(db, 'users', uid), { ...data, createdAt: serverTimestamp() })
   } catch (error) {
     console.error('사용자 프로필 생성 에러:', error)
     throw error
@@ -49,19 +36,16 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
 }
 
 // ===== Courses =====
-// 공개 강좌만 (학생/교사용)
+// 공개 강좌 (학생용) - 복합 인덱스 불필요하도록 클라이언트 정렬
 export async function getCourses(): Promise<Course[]> {
   try {
-    const q = query(
-      collection(db, 'courses'),
-      where('isPublished', '==', true),
-      orderBy('order', 'asc')
-    )
+    const q = query(collection(db, 'courses'), where('isPublished', '==', true))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Course))
+    const courses = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Course))
+    return courses.sort((a, b) => (a.order || 0) - (b.order || 0))
   } catch (error) {
     console.error('강의 목록 조회 에러:', error)
-    throw error
+    return []
   }
 }
 
@@ -70,10 +54,10 @@ export async function getAllCourses(): Promise<Course[]> {
   try {
     const q = query(collection(db, 'courses'), orderBy('order', 'asc'))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Course))
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Course))
   } catch (error) {
     console.error('전체 강의 목록 조회 에러:', error)
-    throw error
+    return []
   }
 }
 
@@ -90,11 +74,7 @@ export async function getCourse(courseId: string): Promise<Course | null> {
 export async function createCourse(data: Omit<Course, 'id' | 'createdAt' | 'updatedAt'>) {
   try {
     const docRef = doc(collection(db, 'courses'))
-    await setDoc(docRef, {
-      ...data,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    })
+    await setDoc(docRef, { ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
     return docRef.id
   } catch (error) {
     console.error('강의 생성 에러:', error)
@@ -104,10 +84,7 @@ export async function createCourse(data: Omit<Course, 'id' | 'createdAt' | 'upda
 
 export async function updateCourse(courseId: string, data: Partial<Course>) {
   try {
-    await updateDoc(doc(db, 'courses', courseId), {
-      ...data,
-      updatedAt: serverTimestamp(),
-    })
+    await updateDoc(doc(db, 'courses', courseId), { ...data, updatedAt: serverTimestamp() })
   } catch (error) {
     console.error('강의 업데이트 에러:', error)
     throw error
@@ -128,7 +105,7 @@ export async function getCategories(): Promise<Category[]> {
   try {
     const q = query(collection(db, 'categories'), orderBy('order', 'asc'))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Category))
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Category))
   } catch (error) {
     console.error('카테고리 목록 조회 에러:', error)
     return []
@@ -169,9 +146,7 @@ export async function enrollCourse(userId: string, courseId: string) {
   try {
     const enrollmentId = `${userId}_${courseId}`
     await setDoc(doc(db, 'enrollments', enrollmentId), {
-      userId,
-      courseId,
-      enrolledAt: serverTimestamp(),
+      userId, courseId, enrolledAt: serverTimestamp(),
     })
   } catch (error) {
     console.error('수강 등록 에러:', error)
@@ -183,10 +158,10 @@ export async function getUserEnrollments(userId: string): Promise<Enrollment[]> 
   try {
     const q = query(collection(db, 'enrollments'), where('userId', '==', userId))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Enrollment))
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Enrollment))
   } catch (error) {
     console.error('수강 목록 조회 에러:', error)
-    throw error
+    return []
   }
 }
 
@@ -195,14 +170,9 @@ export async function updateProgress(userId: string, courseId: string, data: Par
   try {
     const progressId = `${userId}_${courseId}`
     const updateData: Record<string, unknown> = {
-      ...data,
-      userId,
-      courseId,
-      updatedAt: serverTimestamp(),
+      ...data, userId, courseId, updatedAt: serverTimestamp(),
     }
-    if (data.completed) {
-      updateData.completedAt = serverTimestamp()
-    }
+    if (data.completed) { updateData.completedAt = serverTimestamp() }
     await setDoc(doc(db, 'progress', progressId), updateData, { merge: true })
   } catch (error) {
     console.error('학습 진도 업데이트 에러:', error)
@@ -217,34 +187,26 @@ export async function getProgress(userId: string, courseId: string): Promise<Pro
     return docSnap.exists() ? (docSnap.data() as Progress) : null
   } catch (error) {
     console.error('학습 진도 조회 에러:', error)
-    throw error
+    return null
   }
 }
 
 // ===== Posts =====
 export async function getPosts(type: 'notice' | 'resource'): Promise<Post[]> {
   try {
-    const q = query(
-      collection(db, 'posts'),
-      where('type', '==', type),
-      orderBy('createdAt', 'desc')
-    )
+    const q = query(collection(db, 'posts'), where('type', '==', type), orderBy('createdAt', 'desc'))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Post))
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Post))
   } catch (error) {
     console.error('게시글 목록 조회 에러:', error)
-    throw error
+    return []
   }
 }
 
 export async function createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>) {
   try {
     const docRef = doc(collection(db, 'posts'))
-    await setDoc(docRef, {
-      ...data,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    })
+    await setDoc(docRef, { ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
     return docRef.id
   } catch (error) {
     console.error('게시글 생성 에러:', error)
@@ -257,7 +219,7 @@ export async function getGroups(): Promise<StudentGroup[]> {
   try {
     const q = query(collection(db, 'groups'), orderBy('order', 'asc'))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as StudentGroup))
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as StudentGroup))
   } catch (error) {
     console.error('그룹 목록 조회 에러:', error)
     return []
