@@ -14,7 +14,7 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { db } from './config'
-import type { Course, UserProfile, Enrollment, Progress, Post, StudentGroup } from '@/lib/types'
+import type { Course, UserProfile, Enrollment, Progress, Post, StudentGroup, Category } from '@/lib/types'
 
 // ===== Users =====
 export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt'>) {
@@ -48,51 +48,8 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
   }
 }
 
-// ===== Student Groups =====
-export async function getGroups(): Promise<StudentGroup[]> {
-  try {
-    const q = query(collection(db, 'groups'), orderBy('order', 'asc'))
-    const snapshot = await getDocs(q)
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as StudentGroup))
-  } catch (error) {
-    console.error('그룹 목록 조회 에러:', error)
-    throw error
-  }
-}
-
-export async function createGroup(data: { name: string; order: number }) {
-  try {
-    const docRef = doc(collection(db, 'groups'))
-    await setDoc(docRef, {
-      ...data,
-      createdAt: serverTimestamp(),
-    })
-    return docRef.id
-  } catch (error) {
-    console.error('그룹 생성 에러:', error)
-    throw error
-  }
-}
-
-export async function updateGroup(groupId: string, data: { name?: string; order?: number }) {
-  try {
-    await updateDoc(doc(db, 'groups', groupId), { ...data })
-  } catch (error) {
-    console.error('그룹 업데이트 에러:', error)
-    throw error
-  }
-}
-
-export async function deleteGroup(groupId: string) {
-  try {
-    await deleteDoc(doc(db, 'groups', groupId))
-  } catch (error) {
-    console.error('그룹 삭제 에러:', error)
-    throw error
-  }
-}
-
 // ===== Courses =====
+// 공개 강좌만 (학생/교사용)
 export async function getCourses(): Promise<Course[]> {
   try {
     const q = query(
@@ -104,6 +61,18 @@ export async function getCourses(): Promise<Course[]> {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Course))
   } catch (error) {
     console.error('강의 목록 조회 에러:', error)
+    throw error
+  }
+}
+
+// 전체 강좌 (관리자용) - 비공개 포함
+export async function getAllCourses(): Promise<Course[]> {
+  try {
+    const q = query(collection(db, 'courses'), orderBy('order', 'asc'))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Course))
+  } catch (error) {
+    console.error('전체 강의 목록 조회 에러:', error)
     throw error
   }
 }
@@ -150,6 +119,47 @@ export async function deleteCourse(courseId: string) {
     await deleteDoc(doc(db, 'courses', courseId))
   } catch (error) {
     console.error('강의 삭제 에러:', error)
+    throw error
+  }
+}
+
+// ===== Categories =====
+export async function getCategories(): Promise<Category[]> {
+  try {
+    const q = query(collection(db, 'categories'), orderBy('order', 'asc'))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Category))
+  } catch (error) {
+    console.error('카테고리 목록 조회 에러:', error)
+    return []
+  }
+}
+
+export async function createCategory(data: Omit<Category, 'id' | 'createdAt'>) {
+  try {
+    const docRef = doc(collection(db, 'categories'))
+    await setDoc(docRef, { ...data, createdAt: serverTimestamp() })
+    return docRef.id
+  } catch (error) {
+    console.error('카테고리 생성 에러:', error)
+    throw error
+  }
+}
+
+export async function updateCategory(categoryId: string, data: Partial<Category>) {
+  try {
+    await updateDoc(doc(db, 'categories', categoryId), { ...data })
+  } catch (error) {
+    console.error('카테고리 업데이트 에러:', error)
+    throw error
+  }
+}
+
+export async function deleteCategory(categoryId: string) {
+  try {
+    await deleteDoc(doc(db, 'categories', categoryId))
+  } catch (error) {
+    console.error('카테고리 삭제 에러:', error)
     throw error
   }
 }
@@ -238,6 +248,47 @@ export async function createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedA
     return docRef.id
   } catch (error) {
     console.error('게시글 생성 에러:', error)
+    throw error
+  }
+}
+
+// ===== Groups =====
+export async function getGroups(): Promise<StudentGroup[]> {
+  try {
+    const q = query(collection(db, 'groups'), orderBy('order', 'asc'))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as StudentGroup))
+  } catch (error) {
+    console.error('그룹 목록 조회 에러:', error)
+    return []
+  }
+}
+
+export async function createGroup(data: Omit<StudentGroup, 'id' | 'createdAt'>) {
+  try {
+    const docRef = doc(collection(db, 'groups'))
+    await setDoc(docRef, { ...data, createdAt: serverTimestamp() })
+    return docRef.id
+  } catch (error) {
+    console.error('그룹 생성 에러:', error)
+    throw error
+  }
+}
+
+export async function updateGroup(groupId: string, data: Partial<StudentGroup>) {
+  try {
+    await updateDoc(doc(db, 'groups', groupId), { ...data })
+  } catch (error) {
+    console.error('그룹 업데이트 에러:', error)
+    throw error
+  }
+}
+
+export async function deleteGroup(groupId: string) {
+  try {
+    await deleteDoc(doc(db, 'groups', groupId))
+  } catch (error) {
+    console.error('그룹 삭제 에러:', error)
     throw error
   }
 }
