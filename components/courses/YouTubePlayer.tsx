@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { extractYouTubeId } from '@/lib/utils';
 
 interface YouTubePlayerProps {
@@ -15,6 +15,8 @@ declare global {
   interface Window {
     YT: any;
     onYouTubeIframeAPIReady: (() => void) | undefined;
+    _ytApiLoaded?: boolean;
+    _ytApiCallbacks?: (() => void)[];
   }
 }
 
@@ -25,25 +27,16 @@ export default function YouTubePlayer({
   onProgress,
   onEnded,
 }: YouTubePlayerProps) {
-  const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<any>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const onProgressRef = useRef(onProgress);
+  const onEndedRef = useRef(onEnded);
   const videoId = extractYouTubeId(videoUrl);
 
-  // 진도 추적 시작/중지
-  const startTracking = useCallback(() => {
-    if (intervalRef.current) return;
-    intervalRef.current = setInterval(() => {
-      if (playerRef.current && playerRef.current.getCurrentTime) {
-        const current = Math.floor(playerRef.current.getCurrentTime());
-        const duration = Math.floor(playerRef.current.getDuration());
-        if (onProgress && duration > 0) {
-          onProgress(current, duration);
-        }
-      }
-    }, 3000);
-  }, [onProgress]);
+  // ref로 최신 콜백 유지 (클로저 문제 방지)
+  useEffect(() => { onProgressRef.current = onProgress; }, [onProgress]);
+  useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
 
   const stopTracking = useCallback(() => {
     if (intervalRef.current) {
@@ -52,28 +45,36 @@ export default function YouTubePlayer({
     }
   }, []);
 
-  // YouTube IFrame API 로드
+  const startTracking = useCallback(() => {
+    stopTracking();
+    intervalRef.current = setInterval(() => {
+      const p = playerRef.current;
+      if (p && typeof p.getCurrentTime === 'function') {
+        const current = Math.floor(p.getCurrentTime());
+        const duration = Math.floor(p.getDuration());
+        if (onProgressRef.current && duration > 0) {
+          onProgressRef.current(current, duration);
+        }
+      }
+    }, 3000);
+  }, [stopTracking]);
+
   useEffect(() => {
-    if (!videoId) return;
+    if (!videoId || !containerRef.current) return;
 
-    const loadAPI = () => {
-      if (window.YT && window.YT.Player) {
-        createPlayer();
-        return;
-      }
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScript = document.getElementsByTagName('script')[0];
-      firstScript.parentNode?.insertBefore(tag, firstScript);
-      window.onYouTubeIframeAPIReady = () => { createPlayer(); };
-    };
+    const initPlayer = () => {
+      if (!containerRef.current) return;
 
-    const createPlayer = () => {
+      // 기존 플레이어 제거
       if (playerRef.current) {
-        playerRef.current.destroy();
+        try { playerRef.current.destroy(); } catch (e) {}
+        playerRef.current = null;
       }
+
       playerRef.current = new window.YT.Player(containerRef.current, {
         videoId,
+        width: '100%',
+        height: '100%',
         playerVars: {
           autoplay: 0,
           rel: 0,
@@ -81,50 +82,66 @@ export default function YouTubePlayer({
           start: Math.floor(startTime),
         },
         events: {
-          onReady: () => { setIsReady(true); },
           onStateChange: (event: any) => {
-            // 1 = playing, 2 = paused, 0 = ended
-            if (event.data === 1) {
+            const state = event.data;
+            if (state === 1) {
+              // 재생 중
               startTracking();
-            } else if (event.data === 2) {
+            } else if (state === 2) {
+              // 일시정지
               stopTracking();
-              // 일시정지 시 현재 위치 저장
-              if (playerRef.current && onProgress) {
-                const current = Math.floor(playerRef.current.getCurrentTime());
-                const duration = Math.floor(playerRef.current.getDuration());
-                onProgress(current, duration);
+              const p = playerRef.current;
+              if (p && onProgressRef.current) {
+                onProgressRef.current(
+                  Math.floor(p.getCurrentTime()),
+                  Math.floor(p.getDuration())
+                );
               }
-            } else if (event.data === 0) {
-              stopTracking();
+            } else if (state === 0) {
               // 영상 종료
-              if (playerRef.current && onProgress) {
-                const duration = Math.floor(playerRef.current.getDuration());
-                onProgress(duration, duration);
+              stopTracking();
+              const p = playerRef.current;
+              if (p && onProgressRef.current) {
+                const dur = Math.floor(p.getDuration());
+                onProgressRef.current(dur, dur);
               }
-              if (onEnded) onEnded();
+              if (onEndedRef.current) onEndedRef.current();
             }
           },
         },
       });
     };
 
-    loadAPI();
+    // YouTube API 로드
+    if (window.YT && window.YT.Player) {
+      initPlayer();
+    } else {
+      if (!window._ytApiCallbacks) {
+        window._ytApiCallbacks = [];
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
+        window.onYouTubeIframeAPIReady = () => {
+          window._ytApiLoaded = true;
+          window._ytApiCallbacks?.forEach(cb => cb());
+          window._ytApiCallbacks = [];
+        };
+      }
+      if (window._ytApiLoaded) {
+        initPlayer();
+      } else {
+        window._ytApiCallbacks?.push(initPlayer);
+      }
+    }
 
     return () => {
       stopTracking();
-      if (playerRef.current && playerRef.current.destroy) {
-        playerRef.current.destroy();
+      if (playerRef.current) {
+        try { playerRef.current.destroy(); } catch (e) {}
         playerRef.current = null;
       }
     };
-  }, [videoId]);
-
-  // startTime이 변경되면 해당 위치로 이동
-  useEffect(() => {
-    if (isReady && playerRef.current && startTime > 0) {
-      playerRef.current.seekTo(startTime, true);
-    }
-  }, [isReady, startTime]);
+  }, [videoId, startTime]);
 
   if (!videoId) {
     return (
