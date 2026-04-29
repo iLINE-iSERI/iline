@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import AuthGuard from '@/components/auth/AuthGuard';
 import YouTubePlayer from '@/components/courses/YouTubePlayer';
@@ -25,11 +25,10 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [catMap, setCatMap] = useState<Record<string, string>>({});
-  // 이어보기 관련
   const [showResumeChoice, setShowResumeChoice] = useState(false);
   const [startTime, setStartTime] = useState(0);
-  const [playerReady, setPlayerReady] = useState(false);
-  const [lastSaved, setLastSaved] = useState(0);
+  const [showPlayer, setShowPlayer] = useState(false);
+  const lastSavedRef = useRef(0);
 
   useEffect(() => {
     if (!courseId) return;
@@ -40,7 +39,6 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
           getCategories(),
         ]);
         setCourse(courseData as Course);
-
         const map: Record<string, string> = {
           'ai-basic': 'AI 기초', 'ai-ethics': 'AI 윤리', 'coding': '코딩',
         };
@@ -54,17 +52,16 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
           if (enrolled) {
             const p = await getProgress(user.uid, courseId);
             setProgress(p);
-            // 이전 시청 기록이 있고 완료되지 않은 경우 선택지 표시
             if (p && p.lastPosition > 10 && !p.completed) {
               setShowResumeChoice(true);
             } else {
-              setPlayerReady(true);
+              setShowPlayer(true);
             }
           } else {
-            setPlayerReady(true);
+            setShowPlayer(true);
           }
         } else {
-          setPlayerReady(true);
+          setShowPlayer(true);
         }
       } catch (error) {
         console.error('강좌 로드 실패:', error);
@@ -75,30 +72,29 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
     loadCourse();
   }, [courseId, user?.uid]);
 
-  // 이어서 보기
   const handleResume = () => {
     if (progress) {
       setStartTime(progress.lastPosition);
+      lastSavedRef.current = progress.lastPosition;
     }
     setShowResumeChoice(false);
-    setPlayerReady(true);
+    setShowPlayer(true);
   };
 
-  // 처음부터 보기
   const handleRestart = () => {
     setStartTime(0);
+    lastSavedRef.current = 0;
     setShowResumeChoice(false);
-    setPlayerReady(true);
+    setShowPlayer(true);
   };
 
-  // 수강 신청
   const handleEnroll = async () => {
     if (!user?.uid) return;
     setEnrolling(true);
     try {
       await enrollCourse(user.uid, courseId);
       setIsEnrolled(true);
-      setPlayerReady(true);
+      setShowPlayer(true);
     } catch (error) {
       console.error('강좌 등록 실패:', error);
       alert('강좌 등록에 실패했습니다');
@@ -107,11 +103,11 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
     }
   };
 
-  // 진도 저장 (3초마다 호출됨, 10초 간격으로 DB 저장)
   const handleProgress = useCallback(async (seconds: number, duration: number) => {
-    if (!user?.uid || !isEnrolled) return;
-    if (Math.abs(seconds - lastSaved) < 10 && seconds < duration) return;
-    setLastSaved(seconds);
+    if (!user?.uid) return;
+    // 마지막 저장과 10초 이상 차이날 때만 저장
+    if (Math.abs(seconds - lastSavedRef.current) < 10 && seconds < duration - 5) return;
+    lastSavedRef.current = seconds;
     try {
       const isCompleted = duration > 0 && seconds >= duration - 5;
       await updateProgress(user.uid, courseId, {
@@ -119,30 +115,26 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
         totalDuration: duration,
         completed: isCompleted,
       });
-      setProgress(prev => prev
-        ? { ...prev, lastPosition: seconds, totalDuration: duration, completed: isCompleted }
-        : null
-      );
+      setProgress(prev => {
+        const base = prev || { userId: user.uid, courseId, lastPosition: 0, totalDuration: 0, completed: false } as Progress;
+        return { ...base, lastPosition: seconds, totalDuration: duration, completed: isCompleted };
+      });
     } catch (error) {
       console.error('진도 저장 실패:', error);
     }
-  }, [user?.uid, courseId, isEnrolled, lastSaved]);
+  }, [user?.uid, courseId]);
 
-  // 영상 종료 시
   const handleVideoEnded = useCallback(async () => {
-    if (!user?.uid || !isEnrolled) return;
+    if (!user?.uid) return;
     try {
-      const duration = progress?.totalDuration || 0;
       await updateProgress(user.uid, courseId, {
-        lastPosition: duration,
-        totalDuration: duration,
         completed: true,
       });
-      setProgress(prev => prev ? { ...prev, completed: true, lastPosition: duration } : null);
+      setProgress(prev => prev ? { ...prev, completed: true } : null);
     } catch (error) {
       console.error('완료 처리 실패:', error);
     }
-  }, [user?.uid, courseId, isEnrolled, progress?.totalDuration]);
+  }, [user?.uid, courseId]);
 
   if (loading) {
     return (
@@ -151,7 +143,6 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
           <div className="h-96 bg-gray-200 rounded-lg"></div>
           <div className="space-y-4">
             <div className="h-10 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-6 bg-gray-200 rounded w-1/3"></div>
           </div>
         </div>
       </div>
@@ -166,7 +157,6 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
     );
   }
 
-  // 진도율 계산
   const progressPercent = progress && progress.totalDuration > 0
     ? Math.min(100, Math.round((progress.lastPosition / progress.totalDuration) * 100))
     : 0;
@@ -213,7 +203,7 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
       )}
 
       {/* 비디오 플레이어 */}
-      {playerReady && (
+      {showPlayer && (
         <YouTubePlayer
           videoUrl={course.youtubeUrl}
           title={course.title}
