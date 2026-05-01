@@ -74,8 +74,8 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
 
   const handleResume = () => {
     if (progress) {
-      setStartTime(progress.lastPosition);
-      lastSavedRef.current = progress.lastPosition;
+      setStartTime(progress.lastPosition || 0);
+      lastSavedRef.current = progress.lastPosition || 0;
     }
     setShowResumeChoice(false);
     setShowPlayer(true);
