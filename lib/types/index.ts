@@ -9,7 +9,12 @@ export interface UserProfile {
   group: string
   totalPoints: number
   photoURL?: string
+  birthDate?: string
+  phone?: string
+  school?: string
+  grade?: string
   createdAt: Timestamp
+  [key: string]: any
 }
 
 export interface Course {
