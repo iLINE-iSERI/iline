@@ -1,7 +1,5 @@
-// TypeScript 타입 정의
 import { Timestamp } from 'firebase/firestore'
 
-// 사용자 프로필
 export interface UserProfile {
   uid: string
   email: string
@@ -9,11 +7,11 @@ export interface UserProfile {
   role: 'student' | 'teacher' | 'admin'
   group: string
   birthDate: string
+  totalPoints: number
   createdAt: Timestamp
   photoURL?: string
 }
 
-// 카테고리
 export interface Category {
   id: string
   name: string
@@ -22,7 +20,6 @@ export interface Category {
   createdAt: Timestamp
 }
 
-// 강의
 export interface Course {
   id: string
   title: string
@@ -36,7 +33,6 @@ export interface Course {
   updatedAt: Timestamp
 }
 
-// 수강 등록
 export interface Enrollment {
   id: string
   userId: string
@@ -44,7 +40,6 @@ export interface Enrollment {
   enrolledAt: Timestamp
 }
 
-// 학습 진도
 export interface Progress {
   userId: string
   courseId: string
@@ -55,7 +50,6 @@ export interface Progress {
   updatedAt: Timestamp
 }
 
-// 게시글 (공지사항/자료실)
 export interface Post {
   id: string
   type: 'notice' | 'resource'
@@ -67,10 +61,51 @@ export interface Post {
   updatedAt: Timestamp
 }
 
-// 학생 그룹
 export interface StudentGroup {
   id: string
   name: string
   order: number
+  createdAt: Timestamp
+}
+
+export interface PointRule {
+  id: string
+  action: string
+  name: string
+  points: number
+  isActive: boolean
+  createdAt: Timestamp
+}
+
+export interface PointHistory {
+  id: string
+  userId: string
+  action: string
+  points: number
+  description: string
+  createdAt: Timestamp
+}
+
+// 보상 상품
+export interface Reward {
+  id: string
+  name: string
+  description: string
+  imageUrl: string
+  requiredPoints: number
+  stock: number
+  isActive: boolean
+  createdAt: Timestamp
+}
+
+// 보상 교환 내역
+export interface RewardClaim {
+  id: string
+  userId: string
+  userName: string
+  rewardId: string
+  rewardName: string
+  points: number
+  status: 'pending' | 'completed' | 'rejected'
   createdAt: Timestamp
 }
