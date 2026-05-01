@@ -6,6 +6,7 @@ export interface UserProfile {
   displayName: string
   role: 'student' | 'teacher' | 'admin'
   group?: string
+  name?: string
   totalPoints: number
   createdAt: Timestamp
 }
