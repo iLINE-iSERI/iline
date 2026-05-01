@@ -3,11 +3,11 @@ import { Timestamp } from 'firebase/firestore'
 export interface UserProfile {
   uid: string
   email: string
-  name: string
+  displayName: string
   role: 'student' | 'teacher' | 'admin'
+  group?: string
   totalPoints: number
   createdAt: Timestamp
-  photoURL?: string
 }
 
 export interface Course {
