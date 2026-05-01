@@ -5,19 +5,9 @@ export interface UserProfile {
   email: string
   name: string
   role: 'student' | 'teacher' | 'admin'
-  group: string
-  birthDate: string
   totalPoints: number
   createdAt: Timestamp
   photoURL?: string
-}
-
-export interface Category {
-  id: string
-  name: string
-  slug: string
-  order: number
-  createdAt: Timestamp
 }
 
 export interface Course {
@@ -26,7 +16,7 @@ export interface Course {
   description: string
   youtubeUrl: string
   thumbnailUrl: string
-  category: string
+  category: 'ai-basic' | 'ai-ethics' | 'coding'
   order: number
   isPublished: boolean
   createdAt: Timestamp
@@ -43,8 +33,7 @@ export interface Enrollment {
 export interface Progress {
   userId: string
   courseId: string
-  lastPosition: number
-  totalDuration: number
+  watchedSeconds: number
   completed: boolean
   completedAt?: Timestamp
   updatedAt: Timestamp
@@ -61,56 +50,23 @@ export interface Post {
   updatedAt: Timestamp
 }
 
-export interface StudentGroup {
-  id: string
-  name: string
-  order: number
-  createdAt: Timestamp
-}
-
 export interface PointRule {
   id: string
   action: string
-  name: string
+  label: string
   points: number
   isActive: boolean
-  createdAt: Timestamp
 }
 
 export interface PointHistory {
   id: string
   userId: string
   action: string
+  label: string
   points: number
-  description: string
   createdAt: Timestamp
 }
 
-// 보상 상품
-export interface Reward {
-  id: string
-  name: string
-  description: string
-  imageUrl: string
-  requiredPoints: number
-  stock: number
-  isActive: boolean
-  createdAt: Timestamp
-}
-
-// 보상 교환 내역
-export interface RewardClaim {
-  id: string
-  userId: string
-  userName: string
-  rewardId: string
-  rewardName: string
-  points: number
-  status: 'pending' | 'completed' | 'rejected'
-  createdAt: Timestamp
-}
-
-// Q&A
 export interface QnA {
   id: string
   title: string
