@@ -33,6 +33,9 @@ export default function Header() {
                 <Link href="/dashboard" className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all">대시보드</Link>
                 <Link href="/courses" className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all">강의</Link>
                 <Link href="/board/notice" className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all">공지사항</Link>
+                <Link href="/qna" className="text-gray-700 hover:text-blue-600 transition-colors">
+                  Q&A
+                </Link>  
                 <Link href="/board/resource" className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all">자료실</Link>
               </>
             )}
