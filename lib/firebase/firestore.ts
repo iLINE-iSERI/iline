@@ -3,7 +3,7 @@ import {
   query, where, orderBy, serverTimestamp, increment, limit,
 } from 'firebase/firestore'
 import { db } from './config'
-import type { Course, UserProfile, Enrollment, Progress, Post, PointRule, PointHistory, QnA, Category, StudentGroup } from '@/lib/types'
+import type { Course, UserProfile, Enrollment, Progress, Post, PointRule, PointHistory, QnA, Category, StudentGroup, Reward, RewardClaim } from '@/lib/types'
 
 // ===== Users =====
 export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt'>) {
