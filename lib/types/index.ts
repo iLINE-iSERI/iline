@@ -16,7 +16,7 @@ export interface Course {
   description: string
   youtubeUrl: string
   thumbnailUrl: string
-  category: 'ai-basic' | 'ai-ethics' | 'coding'
+  category: string
   order: number
   isPublished: boolean
   createdAt: Timestamp
