@@ -34,8 +34,8 @@ export interface Progress {
   userId: string
   courseId: string
   watchedSeconds: number
-  lastPosition?: number
-  totalDuration?: number
+  lastPosition: number
+  totalDuration: number
   completed: boolean
   completedAt?: Timestamp
   updatedAt: Timestamp
