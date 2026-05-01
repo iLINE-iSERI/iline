@@ -92,3 +92,24 @@ export interface StudentGroup {
   description?: string
   createdAt: Timestamp
 }
+
+export interface Reward {
+  id: string
+  name: string
+  description: string
+  imageUrl?: string
+  requiredPoints: number
+  stock: number
+  createdAt: Timestamp
+}
+
+export interface RewardClaim {
+  id: string
+  userId: string
+  userName: string
+  rewardId: string
+  rewardName: string
+  points: number
+  status: 'pending' | 'completed' | 'rejected'
+  createdAt: Timestamp
+}
