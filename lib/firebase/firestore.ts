@@ -364,3 +364,9 @@ export async function answerQnA(qnaId: string, answer: string) {
     await updateDoc(doc(db, 'qna', qnaId), { answer, answeredAt: serverTimestamp() })
   } catch (error) { throw error }
 }
+
+export async function deleteQnA(qnaId: string) {
+  try {
+    await deleteDoc(doc(db, 'qna', qnaId))
+  } catch (error) { throw error }
+}
