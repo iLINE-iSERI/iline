@@ -64,6 +64,7 @@ export interface PointHistory {
   userId: string
   action: string
   label: string
+  description?: string
   points: number
   createdAt: Timestamp
 }
