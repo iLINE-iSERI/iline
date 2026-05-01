@@ -66,9 +66,11 @@ export interface Post {
 export interface PointRule {
   id: string
   action: string
-  label: string
   points: number
-  isActive: boolean
+  name?: string
+  label?: string
+  isActive?: boolean
+  createdAt: Timestamp
   [key: string]: any
 }
 
