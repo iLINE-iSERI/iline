@@ -78,6 +78,12 @@ export interface QnA {
   createdAt: Timestamp
 }
 
+export interface Category {
+  id: string
+  name: string
+  slug: string
+  order: number
+}
 export interface StudentGroup {
   id: string
   name: string
