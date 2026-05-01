@@ -31,7 +31,7 @@ export default function QnAPage() {
     if (!user || !userProfile || !title.trim() || !content.trim()) return
     setSubmitting(true)
     try {
-      await createQnA({ title: title.trim(), content: content.trim(), authorId: user.uid, authorName: userProfile.name })
+      await createQnA({ title: title.trim(), content: content.trim(), authorId: user.uid, authorName: userProfile?.name || user.displayName || '익명' })
       setTitle('')
       setContent('')
       await loadQnAs()
