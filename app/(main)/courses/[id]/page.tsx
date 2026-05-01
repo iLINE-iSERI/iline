@@ -52,7 +52,7 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
           if (enrolled) {
             const p = await getProgress(user.uid, courseId);
             setProgress(p);
-            if (p && p.lastPosition > 10 && !p.completed) {
+            if (p && (p.lastPosition || 0) > 10 && !p.completed) {
               setShowResumeChoice(true);
             } else {
               setShowPlayer(true);
