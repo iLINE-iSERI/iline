@@ -311,3 +311,20 @@ export async function updateClaimStatus(claimId: string, status: 'completed' | '
     }
   } catch (error) { console.error('상태 변경 에러:', error); throw error }
 }
+
+// ===== 회원 관리 (관리자용) =====
+export async function getAllUsers(): Promise<UserProfile[]> {
+  try {
+    const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map((d) => (d.data() as UserProfile))
+  } catch (error) { console.error('회원 목록 조회 에러:', error); return [] }
+}
+
+export async function getUserAllProgress(userId: string): Promise<Progress[]> {
+  try {
+    const q = query(collection(db, 'progress'), where('userId', '==', userId))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map((d) => (d.data() as Progress))
+  } catch (error) { console.error('유저 진도 조회 에러:', error); return [] }
+}
