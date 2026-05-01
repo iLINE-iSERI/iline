@@ -100,6 +100,7 @@ export interface Reward {
   imageUrl?: string
   requiredPoints: number
   stock: number
+  isActive: boolean
   createdAt: Timestamp
 }
 
