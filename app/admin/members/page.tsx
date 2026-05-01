@@ -87,7 +87,7 @@ export default function AdminMembersPage() {
                   </div>
                   <span className="font-bold text-teal-600 text-sm">{(u.totalPoints || 0).toLocaleString()} 그뤠잇</span>
                 </div>
-                <div className="text-xs text-gray-400 mt-1">{u.email} · {groupLabel(u.group)}</div>
+                <div className="text-xs text-gray-400 mt-1">{u.email} · {groupLabel(u.group || '')}</div>
               </button>
             ))}
             {filteredUsers.length === 0 && (<div className="text-center py-8 text-gray-400">검색 결과가 없습니다</div>)}
