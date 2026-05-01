@@ -154,7 +154,7 @@ export default function AdminPointsPage() {
                 <div className="flex-grow"><div className="font-semibold text-gray-900">{rule.name}</div><div className="text-xs text-gray-400">{rule.action}</div></div>
                 <input type="number" value={rule.points} onChange={e => handleRulePtsChange(rule, parseInt(e.target.value)||0)} className="w-20 px-3 py-1.5 border rounded-lg text-center font-bold text-teal-600 focus:ring-2 focus:ring-teal-500 outline-none" />
                 <span className="text-sm text-gray-500">그뤠잇</span>
-                <button onClick={() => { setRName(rule.name); setRSlug(rule.action); setRPts(rule.points); setEditRuleId(rule.id); setShowRuleForm(true); }} className="text-blue-600 text-sm font-medium">수정</button>
+                <button onClick={() => { setRName(rule.name || ''); setRSlug(rule.action); setRPts(rule.points); setEditRuleId(rule.id); setShowRuleForm(true); }} className="text-blue-600 text-sm font-medium">수정</button>
                 <button onClick={() => handleDeleteRule(rule.id)} className="text-red-500 text-sm font-medium">삭제</button>
               </div>
             ))}
