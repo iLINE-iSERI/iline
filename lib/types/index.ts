@@ -34,11 +34,12 @@ export interface Progress {
   userId: string
   courseId: string
   watchedSeconds: number
+  lastPosition?: number
+  totalDuration?: number
   completed: boolean
   completedAt?: Timestamp
   updatedAt: Timestamp
 }
-
 export interface Post {
   id: string
   type: 'notice' | 'resource'
