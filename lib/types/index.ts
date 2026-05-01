@@ -89,7 +89,7 @@ export interface Category {
 export interface StudentGroup {
   id: string
   name: string
-  description?: string
+  order: number
   createdAt: Timestamp
 }
 
