@@ -92,6 +92,7 @@ export interface QnA {
   authorId: string
   authorName: string
   answer?: string
+  answeredBy?: string
   answeredAt?: Timestamp
   createdAt: Timestamp
   [key: string]: any
