@@ -328,3 +328,45 @@ export async function getUserAllProgress(userId: string): Promise<Progress[]> {
     return snapshot.docs.map((d) => (d.data() as Progress))
   } catch (error) { console.error('유저 진도 조회 에러:', error); return [] }
 }
+
+// ===== Q&A =====
+export async function getQnAs(): Promise<QnA[]> {
+  try {
+    const q = query(collection(db, 'qna'), orderBy('createdAt', 'desc'))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as QnA))
+  } catch (error) {
+    console.error('Q&A 목록 조회 에러:', error)
+    return []
+  }
+}
+
+export async function createQnA(data: { title: string; content: string; authorId: string; authorName: string }) {
+  try {
+    const docRef = doc(collection(db, 'qna'))
+    await setDoc(docRef, { ...data, createdAt: serverTimestamp() })
+    try {
+      const sheetUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL
+      if (sheetUrl) {
+        await fetch(sheetUrl, {
+          method: 'POST', mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: data.authorName, title: data.title, content: data.content, date: new Date().toLocaleString('ko-KR') }),
+        })
+      }
+    } catch (e) { console.error('Google Sheets 연동 에러:', e) }
+    return docRef.id
+  } catch (error) { throw error }
+}
+
+export async function answerQnA(qnaId: string, answer: string) {
+  try {
+    await updateDoc(doc(db, 'qna', qnaId), { answer, answeredAt: serverTimestamp() })
+  } catch (error) { throw error }
+}
+
+export async function deleteQnA(qnaId: string) {
+  try {
+    await deleteDoc(doc(db, 'qna', qnaId))
+  } catch (error) { throw error }
+}
