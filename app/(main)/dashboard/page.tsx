@@ -59,7 +59,7 @@ function DashboardContent() {
   const totalMinutes = Math.floor((totalSeconds % 3600) / 60);
   const myPoints = userProfile?.totalPoints || 0;
 
-  if (loading) {
+ if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="animate-pulse">
@@ -72,6 +72,7 @@ function DashboardContent() {
     );
   }
 
+ 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* 환영 메시지 + 그뤠잇 */}
