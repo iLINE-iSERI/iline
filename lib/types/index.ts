@@ -28,6 +28,7 @@ export interface Course {
   isPublished: boolean
   createdAt: Timestamp
   updatedAt: Timestamp
+  [key: string]: any
 }
 
 export interface Enrollment {
@@ -35,6 +36,7 @@ export interface Enrollment {
   userId: string
   courseId: string
   enrolledAt: Timestamp
+  [key: string]: any
 }
 
 export interface Progress {
@@ -46,7 +48,9 @@ export interface Progress {
   completed: boolean
   completedAt?: Timestamp
   updatedAt: Timestamp
+  [key: string]: any
 }
+
 export interface Post {
   id: string
   type: 'notice' | 'resource'
@@ -56,6 +60,7 @@ export interface Post {
   attachmentUrl?: string
   createdAt: Timestamp
   updatedAt: Timestamp
+  [key: string]: any
 }
 
 export interface PointRule {
@@ -64,6 +69,7 @@ export interface PointRule {
   label: string
   points: number
   isActive: boolean
+  [key: string]: any
 }
 
 export interface PointHistory {
@@ -74,6 +80,7 @@ export interface PointHistory {
   description?: string
   points: number
   createdAt: Timestamp
+  [key: string]: any
 }
 
 export interface QnA {
@@ -85,6 +92,7 @@ export interface QnA {
   answer?: string
   answeredAt?: Timestamp
   createdAt: Timestamp
+  [key: string]: any
 }
 
 export interface Category {
@@ -92,12 +100,14 @@ export interface Category {
   name: string
   slug: string
   order: number
+  [key: string]: any
 }
 export interface StudentGroup {
   id: string
   name: string
   order: number
   createdAt: Timestamp
+  [key: string]: any
 }
 
 export interface Reward {
@@ -109,6 +119,7 @@ export interface Reward {
   stock: number
   isActive: boolean
   createdAt: Timestamp
+  [key: string]: any
 }
 
 export interface RewardClaim {
@@ -120,4 +131,5 @@ export interface RewardClaim {
   points: number
   status: 'pending' | 'completed' | 'rejected'
   createdAt: Timestamp
+  [key: string]: any
 }
