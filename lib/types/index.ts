@@ -109,3 +109,15 @@ export interface RewardClaim {
   status: 'pending' | 'completed' | 'rejected'
   createdAt: Timestamp
 }
+
+// Q&A
+export interface QnA {
+  id: string
+  title: string
+  content: string
+  authorId: string
+  authorName: string
+  answer?: string
+  answeredAt?: Timestamp
+  createdAt: Timestamp
+}
