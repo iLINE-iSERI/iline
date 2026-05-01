@@ -77,3 +77,10 @@ export interface QnA {
   answeredAt?: Timestamp
   createdAt: Timestamp
 }
+
+export interface StudentGroup {
+  id: string
+  name: string
+  description?: string
+  createdAt: Timestamp
+}
