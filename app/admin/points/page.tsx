@@ -100,7 +100,7 @@ export default function AdminPointsPage() {
     await deleteReward(id); setRewards(prev => prev.filter(r => r.id !== id));
   };
   const handleEditReward = (r: Reward) => {
-    setRwName(r.name); setRwDesc(r.description); setRwImg(r.imageUrl); setRwPts(r.requiredPoints); setRwStock(r.stock);
+    setRwName(r.name); setRwDesc(r.description); setRwImg(r.imageUrl || ''); setRwPts(r.requiredPoints); setRwStock(r.stock);
     setEditRewardId(r.id); setShowRewardForm(true);
   };
 
