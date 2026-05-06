@@ -139,8 +139,16 @@ correctAnswer 규칙:
     return NextResponse.json({ questions: parsed.questions })
   } catch (error) {
     console.error('퀴즈 생성 에러:', error)
+    // 임시 진단 코드 — 정상화 후 제거 예정
+    const errorInfo =
+      error instanceof Error
+        ? { name: error.name, message: error.message }
+        : { raw: String(error) }
     return NextResponse.json(
-      { error: '퀴즈 생성에 실패했습니다. 잠시 후 다시 시도해주세요.' },
+      {
+        error: '퀴즈 생성에 실패했습니다. 잠시 후 다시 시도해주세요.',
+        debug: errorInfo,
+      },
       { status: 500 }
     )
   }
