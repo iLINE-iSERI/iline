@@ -3,7 +3,7 @@ import {
   query, where, orderBy, serverTimestamp, increment, limit,
 } from 'firebase/firestore'
 import { db } from './config'
-import type { Course, UserProfile, Enrollment, Progress, Post, PointRule, PointHistory, QnA, Category, StudentGroup, Reward, RewardClaim } from '@/lib/types'
+import type { Course, UserProfile, Enrollment, Progress, Post, PointRule, PointHistory, QnA, Category, StudentGroup, Reward, RewardClaim, CourseComment } from '@/lib/types'
 
 // ===== Users =====
 export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt'>) {
@@ -383,4 +383,28 @@ export async function deleteQnA(qnaId: string) {
   try {
     await deleteDoc(doc(db, 'qna', qnaId))
   } catch (error) { throw error }
+}
+
+// ===== Course Comments =====
+export async function getCourseComments(courseId: string): Promise<CourseComment[]> {
+  try {
+    const q = query(collection(db, 'courseComments'), where('courseId', '==', courseId))
+    const snapshot = await getDocs(q)
+    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as CourseComment))
+    return items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
+  } catch (error) { console.error('강좌 댓글 조회 에러:', error); return [] }
+}
+
+export async function createCourseComment(data: { courseId: string; authorId: string; authorName: string; content: string }): Promise<string> {
+  try {
+    const docRef = doc(collection(db, 'courseComments'))
+    await setDoc(docRef, { ...data, createdAt: serverTimestamp() })
+    return docRef.id
+  } catch (error) { console.error('강좌 댓글 작성 에러:', error); throw error }
+}
+
+export async function deleteCourseComment(commentId: string) {
+  try {
+    await deleteDoc(doc(db, 'courseComments', commentId))
+  } catch (error) { console.error('강좌 댓글 삭제 에러:', error); throw error }
 }

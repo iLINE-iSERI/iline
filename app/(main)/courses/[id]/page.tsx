@@ -7,8 +7,9 @@ import YouTubePlayer from '@/components/courses/YouTubePlayer';
 import {
   getCourse, enrollCourse, updateProgress, getProgress,
   getUserEnrollments, getCategories,
+  getCourseComments, createCourseComment, deleteCourseComment,
 } from '@/lib/firebase/firestore';
-import type { Course, Progress, Category } from '@/lib/types';
+import type { Course, Progress, Category, CourseComment } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { formatSeconds } from '@/lib/utils';
 
@@ -17,7 +18,7 @@ interface CourseDetailProps {
 }
 
 function CourseDetailContent({ courseId }: { courseId: string }) {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -28,7 +29,11 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
   const [showResumeChoice, setShowResumeChoice] = useState(false);
   const [startTime, setStartTime] = useState(0);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [comments, setComments] = useState<CourseComment[]>([]);
+  const [commentInput, setCommentInput] = useState('');
+  const [posting, setPosting] = useState(false);
   const lastSavedRef = useRef(0);
+  const isAdmin = userProfile?.role === 'admin';
 
   useEffect(() => {
     if (!courseId) return;
@@ -57,11 +62,7 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
             } else {
               setShowPlayer(true);
             }
-          } else {
-            setShowPlayer(true);
           }
-        } else {
-          setShowPlayer(true);
         }
       } catch (error) {
         console.error('강좌 로드 실패:', error);
@@ -100,6 +101,41 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
       alert('강좌 등록에 실패했습니다');
     } finally {
       setEnrolling(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isEnrolled || !courseId) return;
+    getCourseComments(courseId).then(setComments).catch(e => console.error('댓글 로드 실패:', e));
+  }, [isEnrolled, courseId]);
+
+  const handleAddComment = async () => {
+    const text = commentInput.trim();
+    if (!text || !user?.uid) return;
+    const authorName = userProfile?.name || user.email || '익명';
+    setPosting(true);
+    try {
+      const id = await createCourseComment({ courseId, authorId: user.uid, authorName, content: text });
+      const optimistic: CourseComment = {
+        id, courseId, authorId: user.uid, authorName, content: text,
+        createdAt: { toMillis: () => Date.now(), toDate: () => new Date() } as unknown as CourseComment['createdAt'],
+      };
+      setComments(prev => [optimistic, ...prev]);
+      setCommentInput('');
+    } catch (e) {
+      alert('댓글 작성 실패');
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const handleDeleteComment = async (id: string) => {
+    if (!confirm('이 댓글을 삭제하시겠습니까?')) return;
+    try {
+      await deleteCourseComment(id);
+      setComments(prev => prev.filter(c => c.id !== id));
+    } catch (e) {
+      alert('삭제 실패');
     }
   };
 
@@ -269,6 +305,63 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
             </button>
           )}
         </div>
+
+        {/* 댓글 섹션 (수강생 전용) */}
+        {isEnrolled && (
+          <div className="mt-10 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-gray-900 mb-1">댓글</h2>
+            <p className="text-sm text-gray-500 mb-5">강좌 내용에 대한 질문이나 의견을 자유롭게 남겨보세요</p>
+
+            <div className="mb-6">
+              <textarea
+                value={commentInput}
+                onChange={(e) => setCommentInput(e.target.value)}
+                placeholder="댓글을 입력하세요"
+                rows={3}
+                maxLength={500}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none transition"
+              />
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-xs text-gray-400">{commentInput.length}/500</span>
+                <button
+                  onClick={handleAddComment}
+                  disabled={posting || !commentInput.trim()}
+                  className="bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-semibold py-2 px-5 rounded-lg transition"
+                >
+                  {posting ? '작성 중...' : '댓글 작성'}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {comments.length === 0 ? (
+                <p className="text-center py-8 text-gray-400 text-sm">아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</p>
+              ) : (
+                comments.map(c => (
+                  <div key={c.id} className="flex gap-3 p-4 bg-gray-50 rounded-xl">
+                    <div className="flex-grow min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-gray-900 text-sm">{c.authorName}</span>
+                        <span className="text-xs text-gray-400">
+                          {c.createdAt?.toDate ? new Date(c.createdAt.toDate()).toLocaleString('ko-KR') : ''}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 text-sm whitespace-pre-wrap break-words">{c.content}</p>
+                    </div>
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDeleteComment(c.id)}
+                        className="text-red-500 hover:text-red-700 text-xs font-medium self-start whitespace-nowrap"
+                      >
+                        삭제
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

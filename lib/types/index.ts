@@ -115,6 +115,16 @@ export interface StudentGroup {
   [key: string]: any
 }
 
+export interface CourseComment {
+  id: string
+  courseId: string
+  authorId: string
+  authorName: string
+  content: string
+  createdAt: Timestamp
+  [key: string]: any
+}
+
 export interface Reward {
   id: string
   name: string
