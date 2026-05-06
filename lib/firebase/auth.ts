@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from './config'
+import { awardPoints } from './firestore'
 
 const googleProvider = new GoogleAuthProvider()
 
@@ -32,9 +33,12 @@ export async function signUpWithEmail(
       birthDate,
       group,
       role: 'student',
+      totalPoints: 0,
       createdAt: serverTimestamp(),
       photoURL: user.photoURL || null,
     })
+
+    await awardPoints(user.uid, 'signup', '회원가입')
 
     return user
   } catch (error) {
@@ -47,6 +51,7 @@ export async function signUpWithEmail(
 export async function signInWithEmail(email: string, password: string) {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
+    await awardPoints(userCredential.user.uid, 'daily-login', '출석 체크')
     return userCredential.user
   } catch (error) {
     console.error('로그인 에러:', error)
@@ -69,10 +74,14 @@ export async function signInWithGoogle() {
         birthDate: '',
         group: '',
         role: 'student',
+        totalPoints: 0,
         createdAt: serverTimestamp(),
         photoURL: user.photoURL || null,
       })
+      await awardPoints(user.uid, 'signup', '회원가입')
     }
+
+    await awardPoints(user.uid, 'daily-login', '출석 체크')
 
     return user
   } catch (error) {
