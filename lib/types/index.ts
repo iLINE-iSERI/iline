@@ -115,6 +115,40 @@ export interface StudentGroup {
   [key: string]: any
 }
 
+export interface OfflineCourse {
+  id: string
+  title: string
+  content: string
+  posterUrl?: string
+  instructor?: string
+  startDate: string  // YYYY-MM-DD
+  endDate: string    // YYYY-MM-DD
+  location: string
+  capacity: number   // 0 = 무제한
+  isOpen: boolean
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  [key: string]: any
+}
+
+export type OfflineApplicationStatus = 'pending' | 'approved' | 'rejected' | 'completed'
+
+export interface OfflineApplication {
+  id: string
+  userId: string
+  userName: string
+  userPhone?: string
+  userEmail?: string
+  courseId: string
+  courseTitle: string
+  status: OfflineApplicationStatus
+  appliedAt: Timestamp
+  decidedAt?: Timestamp
+  decidedBy?: string
+  certificateIssuedAt?: Timestamp
+  [key: string]: any
+}
+
 export type QuizQuestionType = 'multiple-choice' | 'ox' | 'short-answer'
 
 export interface QuizQuestion {

@@ -3,7 +3,7 @@ import {
   query, where, orderBy, serverTimestamp, increment, limit,
 } from 'firebase/firestore'
 import { db } from './config'
-import type { Course, UserProfile, Enrollment, Progress, Post, PointRule, PointHistory, QnA, Category, StudentGroup, Reward, RewardClaim, CourseComment, QuizAttempt } from '@/lib/types'
+import type { Course, UserProfile, Enrollment, Progress, Post, PointRule, PointHistory, QnA, Category, StudentGroup, Reward, RewardClaim, CourseComment, QuizAttempt, OfflineCourse, OfflineApplication, OfflineApplicationStatus } from '@/lib/types'
 
 // ===== Users =====
 export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt'>) {
@@ -443,4 +443,80 @@ export async function getUserQuizAttempts(userId: string, courseId: string): Pro
     const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as QuizAttempt))
     return items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
   } catch (error) { console.error('퀴즈 응시 기록 조회 에러:', error); return [] }
+}
+
+// ===== Offline Courses =====
+export async function getOfflineCourses(opts?: { onlyOpen?: boolean }): Promise<OfflineCourse[]> {
+  try {
+    const snapshot = await getDocs(collection(db, 'offlineCourses'))
+    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as OfflineCourse))
+    const filtered = opts?.onlyOpen ? items.filter((c) => c.isOpen) : items
+    return filtered.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
+  } catch (error) { console.error('오프라인 강좌 조회 에러:', error); return [] }
+}
+
+export async function getOfflineCourse(id: string): Promise<OfflineCourse | null> {
+  try {
+    const docSnap = await getDoc(doc(db, 'offlineCourses', id))
+    return docSnap.exists() ? ({ id: docSnap.id, ...docSnap.data() } as OfflineCourse) : null
+  } catch (error) { console.error('오프라인 강좌 단건 조회 에러:', error); return null }
+}
+
+export async function createOfflineCourse(data: Omit<OfflineCourse, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  try {
+    const docRef = doc(collection(db, 'offlineCourses'))
+    await setDoc(docRef, { ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
+    return docRef.id
+  } catch (error) { console.error('오프라인 강좌 생성 에러:', error); throw error }
+}
+
+export async function updateOfflineCourse(id: string, data: Partial<Omit<OfflineCourse, 'id' | 'createdAt'>>) {
+  try {
+    await updateDoc(doc(db, 'offlineCourses', id), { ...data, updatedAt: serverTimestamp() })
+  } catch (error) { console.error('오프라인 강좌 수정 에러:', error); throw error }
+}
+
+export async function deleteOfflineCourse(id: string) {
+  try {
+    await deleteDoc(doc(db, 'offlineCourses', id))
+  } catch (error) { console.error('오프라인 강좌 삭제 에러:', error); throw error }
+}
+
+// ===== Offline Applications (Phase 2부터 사용) =====
+export async function applyOfflineCourse(data: Omit<OfflineApplication, 'id' | 'appliedAt' | 'status'>): Promise<string> {
+  try {
+    const applicationId = `${data.userId}_${data.courseId}`
+    await setDoc(doc(db, 'offlineApplications', applicationId), {
+      ...data,
+      status: 'pending' as OfflineApplicationStatus,
+      appliedAt: serverTimestamp(),
+    })
+    return applicationId
+  } catch (error) { console.error('오프라인 신청 에러:', error); throw error }
+}
+
+export async function getUserOfflineApplications(userId: string): Promise<OfflineApplication[]> {
+  try {
+    const q = query(collection(db, 'offlineApplications'), where('userId', '==', userId))
+    const snapshot = await getDocs(q)
+    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as OfflineApplication))
+    return items.sort((a, b) => (b.appliedAt?.toMillis?.() ?? 0) - (a.appliedAt?.toMillis?.() ?? 0))
+  } catch (error) { console.error('내 오프라인 신청 조회 에러:', error); return [] }
+}
+
+export async function getCourseApplications(courseId: string): Promise<OfflineApplication[]> {
+  try {
+    const q = query(collection(db, 'offlineApplications'), where('courseId', '==', courseId))
+    const snapshot = await getDocs(q)
+    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as OfflineApplication))
+    return items.sort((a, b) => (b.appliedAt?.toMillis?.() ?? 0) - (a.appliedAt?.toMillis?.() ?? 0))
+  } catch (error) { console.error('강좌 신청자 조회 에러:', error); return [] }
+}
+
+export async function updateApplicationStatus(applicationId: string, status: OfflineApplicationStatus, decidedBy: string) {
+  try {
+    const data: Record<string, unknown> = { status, decidedAt: serverTimestamp(), decidedBy }
+    if (status === 'completed') data.certificateIssuedAt = serverTimestamp()
+    await updateDoc(doc(db, 'offlineApplications', applicationId), data)
+  } catch (error) { console.error('신청 상태 변경 에러:', error); throw error }
 }

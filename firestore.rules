@@ -133,6 +133,24 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ===== Offline Courses =====
+    match /offlineCourses/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ===== Offline Applications =====
+    match /offlineApplications/{id} {
+      allow read: if isSignedIn() && (
+        resource == null ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
     // ===== Quiz Attempts =====
     match /quizAttempts/{id} {
       allow read: if isSignedIn() && (
