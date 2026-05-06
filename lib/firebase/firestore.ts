@@ -121,9 +121,10 @@ export async function getProgress(userId: string, courseId: string): Promise<Pro
 // ===== Posts =====
 export async function getPosts(type: 'notice' | 'resource'): Promise<Post[]> {
   try {
-    const q = query(collection(db, 'posts'), where('type', '==', type), orderBy('createdAt', 'desc'))
+    const q = query(collection(db, 'posts'), where('type', '==', type))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Post))
+    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Post))
+    return items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
   } catch (error) { console.error('게시글 조회 에러:', error); return [] }
 }
 export async function createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>) {
@@ -293,9 +294,10 @@ export async function getAllClaims(): Promise<RewardClaim[]> {
 // 교환 내역 조회 (유저용)
 export async function getUserClaims(userId: string): Promise<RewardClaim[]> {
   try {
-    const q = query(collection(db, 'rewardClaims'), where('userId', '==', userId), orderBy('createdAt', 'desc'))
+    const q = query(collection(db, 'rewardClaims'), where('userId', '==', userId))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as RewardClaim))
+    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as RewardClaim))
+    return items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
   } catch (error) { console.error('내 교환 내역 조회 에러:', error); return [] }
 }
 
