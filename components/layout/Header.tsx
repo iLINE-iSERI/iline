@@ -32,6 +32,7 @@ export default function Header() {
               <>
                 <Link href="/dashboard" className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all">대시보드</Link>
                 <Link href="/courses" className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all">강의</Link>
+                <Link href="/offline-courses" className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all">오프라인</Link>
                 <Link href="/board/notice" className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all">공지사항</Link>
                 <Link href="/qna" className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all">Q&amp;A</Link>
                 <Link href="/board/resource" className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-xl text-sm font-medium transition-all">자료실</Link>
@@ -75,6 +76,7 @@ export default function Header() {
             <div className="flex flex-col space-y-1">
               <Link href="/dashboard" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">대시보드</Link>
               <Link href="/courses" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">강의</Link>
+              <Link href="/offline-courses" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">오프라인</Link>
               <Link href="/board/notice" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">공지사항</Link>
               <Link href="/qna" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">Q&amp;A</Link>
               <Link href="/board/resource" className="px-4 py-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl font-medium transition-all">자료실</Link>

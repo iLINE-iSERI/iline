@@ -504,6 +504,13 @@ export async function getUserOfflineApplications(userId: string): Promise<Offlin
   } catch (error) { console.error('내 오프라인 신청 조회 에러:', error); return [] }
 }
 
+export async function getMyApplicationForCourse(userId: string, courseId: string): Promise<OfflineApplication | null> {
+  try {
+    const docSnap = await getDoc(doc(db, 'offlineApplications', `${userId}_${courseId}`))
+    return docSnap.exists() ? ({ id: docSnap.id, ...docSnap.data() } as OfflineApplication) : null
+  } catch (error) { console.error('내 신청 조회 에러:', error); return null }
+}
+
 export async function getCourseApplications(courseId: string): Promise<OfflineApplication[]> {
   try {
     const q = query(collection(db, 'offlineApplications'), where('courseId', '==', courseId))
