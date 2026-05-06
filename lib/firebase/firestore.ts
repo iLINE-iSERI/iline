@@ -105,9 +105,20 @@ export async function getUserEnrollments(userId: string): Promise<Enrollment[]> 
 export async function updateProgress(userId: string, courseId: string, data: Partial<Omit<Progress, 'userId' | 'courseId'>>) {
   try {
     const progressId = `${userId}_${courseId}`
+
+    let alreadyCompleted = false
+    if (data.completed === true) {
+      const existing = await getDoc(doc(db, 'progress', progressId))
+      alreadyCompleted = existing.exists() && existing.data()?.completed === true
+    }
+
     const updateData: Record<string, unknown> = { ...data, userId, courseId, updatedAt: serverTimestamp() }
     if (data.completed) { updateData.completedAt = serverTimestamp() }
     await setDoc(doc(db, 'progress', progressId), updateData, { merge: true })
+
+    if (data.completed === true && !alreadyCompleted) {
+      await awardPoints(userId, 'course-complete', '강좌 수강 완료')
+    }
   } catch (error) { console.error('학습 진도 업데이트 에러:', error); throw error }
 }
 export async function getProgress(userId: string, courseId: string): Promise<Progress | null> {
