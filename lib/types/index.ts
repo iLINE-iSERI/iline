@@ -115,6 +115,21 @@ export interface StudentGroup {
   [key: string]: any
 }
 
+export interface CertificateSettings {
+  logoText: string
+  logoImageUrl?: string
+  mainTitle: string
+  bodyTemplate: string  // {courseTitle} 자리표시자 지원
+  institutionName: string
+  sealText: string
+  sealImageUrl?: string
+  primaryColor: string
+  accentColor: string
+  updatedAt?: Timestamp
+  updatedBy?: string
+  [key: string]: any
+}
+
 export interface OfflineCourse {
   id: string
   title: string

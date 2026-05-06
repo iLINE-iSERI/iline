@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { getOfflineCourse, getMyApplicationForCourse } from '@/lib/firebase/firestore';
-import type { OfflineCourse, OfflineApplication } from '@/lib/types';
+import { getOfflineCourse, getMyApplicationForCourse, getCertificateSettings, DEFAULT_CERTIFICATE_SETTINGS } from '@/lib/firebase/firestore';
+import type { OfflineCourse, OfflineApplication, CertificateSettings } from '@/lib/types';
 
 interface Props { params: { courseId: string } }
 
@@ -14,6 +14,7 @@ function CertificateContent({ courseId }: { courseId: string }) {
   const router = useRouter();
   const [course, setCourse] = useState<OfflineCourse | null>(null);
   const [app, setApp] = useState<OfflineApplication | null>(null);
+  const [settings, setSettings] = useState<CertificateSettings>(DEFAULT_CERTIFICATE_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const certRef = useRef<HTMLDivElement>(null);
@@ -23,10 +24,12 @@ function CertificateContent({ courseId }: { courseId: string }) {
     Promise.all([
       getOfflineCourse(courseId),
       getMyApplicationForCourse(user.uid, courseId),
+      getCertificateSettings(),
     ])
-      .then(([c, a]) => {
+      .then(([c, a, s]) => {
         setCourse(c);
         setApp(a);
+        setSettings(s);
       })
       .finally(() => setLoading(false));
   }, [user?.uid, courseId]);
@@ -124,7 +127,7 @@ function CertificateContent({ courseId }: { courseId: string }) {
             backgroundColor: '#ffffff',
             position: 'relative',
             padding: '60px 80px',
-            border: '8px double #6b46c1',
+            border: `8px double ${settings.primaryColor}`,
             boxSizing: 'border-box',
             fontFamily: '"Noto Sans KR", system-ui, -apple-system, sans-serif',
           }}
@@ -132,20 +135,25 @@ function CertificateContent({ courseId }: { courseId: string }) {
           {/* 외곽 데코 보더 */}
           <div style={{
             position: 'absolute', inset: '20px',
-            border: '2px solid #c7a8eb',
+            border: `2px solid ${settings.primaryColor}55`,
             pointerEvents: 'none',
           }} />
 
           {/* 상단 로고/타이틀 영역 */}
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-            <div style={{
-              fontSize: '24px', fontWeight: 700,
-              color: '#6b46c1', letterSpacing: '4px',
-              marginBottom: '8px',
-            }}>
-              iLINE
-            </div>
-            <div style={{ height: '2px', width: '120px', background: 'linear-gradient(90deg, #6b46c1, #14b8a6)', margin: '0 auto' }} />
+            {settings.logoImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={settings.logoImageUrl} alt="logo" style={{ height: '40px', display: 'inline-block' }} crossOrigin="anonymous" />
+            ) : (
+              <div style={{
+                fontSize: '24px', fontWeight: 700,
+                color: settings.primaryColor, letterSpacing: '4px',
+                marginBottom: '8px',
+              }}>
+                {settings.logoText}
+              </div>
+            )}
+            <div style={{ height: '2px', width: '120px', background: `linear-gradient(90deg, ${settings.primaryColor}, ${settings.accentColor})`, margin: '8px auto 0' }} />
           </div>
 
           {/* 수료증 타이틀 */}
@@ -157,7 +165,7 @@ function CertificateContent({ courseId }: { courseId: string }) {
               margin: 0,
               paddingLeft: '20px',
             }}>
-              수 료 증
+              {settings.mainTitle}
             </h1>
           </div>
 
@@ -170,15 +178,23 @@ function CertificateContent({ courseId }: { courseId: string }) {
               display: 'inline-block',
               fontSize: '32px', fontWeight: 700,
               color: '#1a1a1a',
-              borderBottom: '2px solid #6b46c1',
+              borderBottom: `2px solid ${settings.primaryColor}`,
               padding: '0 40px 6px',
               marginBottom: '32px',
             }}>
               {userProfile?.name || '학습자'}
             </div>
-            <p style={{ fontSize: '20px', color: '#333', lineHeight: 1.8, margin: 0 }}>
-              위 사람은 <strong style={{ color: '#6b46c1' }}>「{course.title}」</strong> 과정을<br />
-              성실히 이수하였기에 이 수료증을 수여합니다.
+            <p style={{ fontSize: '20px', color: '#333', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap' }}>
+              {(() => {
+                const parts = settings.bodyTemplate.split('{courseTitle}');
+                return (
+                  <>
+                    {parts[0]}
+                    <strong style={{ color: settings.primaryColor }}>「{course.title}」</strong>
+                    {parts[1] ?? ''}
+                  </>
+                );
+              })()}
             </p>
           </div>
 
@@ -192,16 +208,16 @@ function CertificateContent({ courseId }: { courseId: string }) {
             color: '#444',
           }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 700, marginBottom: '6px', color: '#6b46c1' }}>교육 기간</div>
+              <div style={{ fontWeight: 700, marginBottom: '6px', color: settings.primaryColor }}>교육 기간</div>
               <div>{course.startDate} ~ {course.endDate}</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 700, marginBottom: '6px', color: '#6b46c1' }}>교육 장소</div>
+              <div style={{ fontWeight: 700, marginBottom: '6px', color: settings.primaryColor }}>교육 장소</div>
               <div>{course.location}</div>
             </div>
             {course.instructor && (
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontWeight: 700, marginBottom: '6px', color: '#6b46c1' }}>강사</div>
+                <div style={{ fontWeight: 700, marginBottom: '6px', color: settings.primaryColor }}>강사</div>
                 <div>{course.instructor}</div>
               </div>
             )}
@@ -217,21 +233,26 @@ function CertificateContent({ courseId }: { courseId: string }) {
               {issuedDate}
             </div>
             <div style={{ fontSize: '24px', fontWeight: 700, color: '#1a1a1a', letterSpacing: '8px' }}>
-              iLINE 교육원
+              {settings.institutionName}
             </div>
-            <div style={{
-              display: 'inline-block',
-              marginTop: '12px',
-              padding: '8px 20px',
-              border: '3px solid #c41e3a',
-              borderRadius: '50%',
-              color: '#c41e3a',
-              fontSize: '14px',
-              fontWeight: 700,
-              letterSpacing: '4px',
-            }}>
-              印
-            </div>
+            {settings.sealImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={settings.sealImageUrl} alt="seal" style={{ height: '60px', marginTop: '12px' }} crossOrigin="anonymous" />
+            ) : (
+              <div style={{
+                display: 'inline-block',
+                marginTop: '12px',
+                padding: '8px 20px',
+                border: '3px solid #c41e3a',
+                borderRadius: '50%',
+                color: '#c41e3a',
+                fontSize: '14px',
+                fontWeight: 700,
+                letterSpacing: '4px',
+              }}>
+                {settings.sealText}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -133,6 +133,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ===== Settings (수료증 등 전역 설정) =====
+    match /settings/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // ===== Offline Courses =====
     match /offlineCourses/{id} {
       allow read: if isSignedIn();

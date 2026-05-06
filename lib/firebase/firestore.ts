@@ -3,7 +3,17 @@ import {
   query, where, orderBy, serverTimestamp, increment, limit,
 } from 'firebase/firestore'
 import { db } from './config'
-import type { Course, UserProfile, Enrollment, Progress, Post, PointRule, PointHistory, QnA, Category, StudentGroup, Reward, RewardClaim, CourseComment, QuizAttempt, OfflineCourse, OfflineApplication, OfflineApplicationStatus } from '@/lib/types'
+import type { Course, UserProfile, Enrollment, Progress, Post, PointRule, PointHistory, QnA, Category, StudentGroup, Reward, RewardClaim, CourseComment, QuizAttempt, OfflineCourse, OfflineApplication, OfflineApplicationStatus, CertificateSettings } from '@/lib/types'
+
+export const DEFAULT_CERTIFICATE_SETTINGS: CertificateSettings = {
+  logoText: 'iLINE',
+  mainTitle: '수 료 증',
+  bodyTemplate: '위 사람은 「{courseTitle}」 과정을\n성실히 이수하였기에 이 수료증을 수여합니다.',
+  institutionName: 'iLINE 교육원',
+  sealText: '印',
+  primaryColor: '#6b46c1',
+  accentColor: '#14b8a6',
+}
 
 // ===== Users =====
 export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt'>) {
@@ -526,4 +536,23 @@ export async function updateApplicationStatus(applicationId: string, status: Off
     if (status === 'completed') data.certificateIssuedAt = serverTimestamp()
     await updateDoc(doc(db, 'offlineApplications', applicationId), data)
   } catch (error) { console.error('신청 상태 변경 에러:', error); throw error }
+}
+
+// ===== Certificate Settings (singleton at settings/certificate) =====
+export async function getCertificateSettings(): Promise<CertificateSettings> {
+  try {
+    const docSnap = await getDoc(doc(db, 'settings', 'certificate'))
+    if (!docSnap.exists()) return { ...DEFAULT_CERTIFICATE_SETTINGS }
+    return { ...DEFAULT_CERTIFICATE_SETTINGS, ...docSnap.data() } as CertificateSettings
+  } catch (error) { console.error('수료증 설정 조회 에러:', error); return { ...DEFAULT_CERTIFICATE_SETTINGS } }
+}
+
+export async function updateCertificateSettings(data: Partial<CertificateSettings>, byUid: string) {
+  try {
+    await setDoc(
+      doc(db, 'settings', 'certificate'),
+      { ...data, updatedAt: serverTimestamp(), updatedBy: byUid },
+      { merge: true }
+    )
+  } catch (error) { console.error('수료증 설정 저장 에러:', error); throw error }
 }

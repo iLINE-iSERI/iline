@@ -49,6 +49,7 @@ export default function Header() {
                   <>
                     <Link href="/admin/courses" className="text-xs bg-gradient-to-r from-purple-600 to-teal-500 text-white px-3 py-1 rounded-full font-medium">강좌관리</Link>
                     <Link href="/admin/offline-courses" className="text-xs bg-gradient-to-r from-pink-500 to-purple-500 text-white px-3 py-1 rounded-full font-medium">오프라인</Link>
+                    <Link href="/admin/certificate-settings" className="text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full font-medium">수료증</Link>
                     <Link href="/admin/groups" className="text-xs bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-3 py-1 rounded-full font-medium">그룹관리</Link>
                   </>
                 )}
