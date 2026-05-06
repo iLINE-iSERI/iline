@@ -17,21 +17,8 @@ export async function POST(
 ) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
-    // 임시 진단 코드 — 환경변수 문제 해결 후 제거 예정
-    const relatedKeys = Object.keys(process.env).filter(
-      (k) => k.toUpperCase().includes('GEMINI') || k.toUpperCase().includes('GOOGLE')
-    )
     return NextResponse.json(
-      {
-        error: 'GEMINI_API_KEY 환경변수가 설정되지 않았습니다',
-        debug: {
-          relatedEnvKeys: relatedKeys,
-          rawHasGeminiApiKey: 'GEMINI_API_KEY' in process.env,
-          vercelEnv: process.env.VERCEL_ENV ?? null,
-          nodeEnv: process.env.NODE_ENV ?? null,
-          deploymentUrl: process.env.VERCEL_URL ?? null,
-        },
-      },
+      { error: 'GEMINI_API_KEY 환경변수가 설정되지 않았습니다' },
       { status: 500 }
     )
   }
@@ -139,16 +126,8 @@ correctAnswer 규칙:
     return NextResponse.json({ questions: parsed.questions })
   } catch (error) {
     console.error('퀴즈 생성 에러:', error)
-    // 임시 진단 코드 — 정상화 후 제거 예정
-    const errorInfo =
-      error instanceof Error
-        ? { name: error.name, message: error.message }
-        : { raw: String(error) }
     return NextResponse.json(
-      {
-        error: '퀴즈 생성에 실패했습니다. 잠시 후 다시 시도해주세요.',
-        debug: errorInfo,
-      },
+      { error: '퀴즈 생성에 실패했습니다. 잠시 후 다시 시도해주세요.' },
       { status: 500 }
     )
   }

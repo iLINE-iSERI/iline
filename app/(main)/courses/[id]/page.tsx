@@ -552,19 +552,27 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-gradient-to-r from-purple-50 to-teal-50 rounded-xl p-4 flex items-center justify-between">
+                  <div className="bg-gradient-to-r from-purple-50 to-teal-50 rounded-xl p-4 flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm text-gray-600">자동 채점 결과</p>
                       <p className="text-2xl font-bold text-purple-700">
                         {autoGradedCorrect} / {autoGradedTotal} 정답
                       </p>
                     </div>
-                    <button
-                      onClick={handleGenerateQuiz}
-                      className="bg-white hover:bg-gray-50 border-2 border-purple-300 text-purple-700 font-semibold py-2 px-5 rounded-lg transition"
-                    >
-                      🔄 다시 풀기
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleRetakeQuiz}
+                        className="bg-white hover:bg-gray-50 border-2 border-gray-300 text-gray-600 font-semibold py-2 px-5 rounded-lg transition"
+                      >
+                        종료
+                      </button>
+                      <button
+                        onClick={handleGenerateQuiz}
+                        className="bg-white hover:bg-gray-50 border-2 border-purple-300 text-purple-700 font-semibold py-2 px-5 rounded-lg transition"
+                      >
+                        🔄 다시 풀기
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
