@@ -209,9 +209,10 @@ export async function awardPoints(userId: string, action: string, description: s
 
 export async function getUserPointHistory(userId: string): Promise<PointHistory[]> {
   try {
-    const q = query(collection(db, 'pointHistory'), where('userId', '==', userId), orderBy('createdAt', 'desc'))
+    const q = query(collection(db, 'pointHistory'), where('userId', '==', userId))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as PointHistory))
+    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as PointHistory))
+    return items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
   } catch (error) { console.error('포인트 내역 조회 에러:', error); return [] }
 }
 
