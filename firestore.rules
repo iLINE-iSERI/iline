@@ -44,8 +44,11 @@ service cloud.firestore {
 
     // ===== Enrollments (수강 등록) =====
     match /enrollments/{id} {
-      allow read: if isSignedIn()
-        && (resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isSignedIn() && (
+        resource == null ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid;
       allow update: if false;
@@ -54,8 +57,11 @@ service cloud.firestore {
 
     // ===== Progress (학습 진도) =====
     match /progress/{id} {
-      allow read: if isSignedIn()
-        && (resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isSignedIn() && (
+        resource == null ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
       allow create, update: if isSignedIn()
         && request.resource.data.userId == request.auth.uid;
       allow delete: if isAdmin();
@@ -83,8 +89,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     match /pointHistory/{id} {
-      allow read: if isSignedIn()
-        && (resource.data.userId == request.auth.uid || isAdmin());
+      // resource == null 허용: dedup 체크 시 미존재 문서 getDoc이 막히지 않도록
+      allow read: if isSignedIn() && (
+        resource == null ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAdmin();
@@ -96,8 +106,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     match /rewardClaims/{id} {
-      allow read: if isSignedIn()
-        && (resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isSignedIn() && (
+        resource == null ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAdmin();
@@ -122,8 +135,11 @@ service cloud.firestore {
 
     // ===== Quiz Attempts =====
     match /quizAttempts/{id} {
-      allow read: if isSignedIn()
-        && (resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isSignedIn() && (
+        resource == null ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid;
       allow update: if false;
