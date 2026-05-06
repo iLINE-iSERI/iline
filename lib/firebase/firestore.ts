@@ -374,6 +374,9 @@ export async function createQnA(data: { title: string; content: string; authorId
         })
       }
     } catch (e) { console.error('Google Sheets 연동 에러:', e) }
+    // 포인트 적립: 일별 1회
+    const today = new Date().toISOString().split('T')[0]
+    await awardPoints(data.authorId, 'post-write', 'Q&A 질문 작성', { dedupKey: today })
     return docRef.id
   } catch (error) { throw error }
 }
@@ -404,6 +407,12 @@ export async function createCourseComment(data: { courseId: string; authorId: st
   try {
     const docRef = doc(collection(db, 'courseComments'))
     await setDoc(docRef, { ...data, createdAt: serverTimestamp() })
+    // 포인트 적립: 수강 완료한 강좌에서 작성한 댓글에 한해, 일별 1회
+    const progressDoc = await getDoc(doc(db, 'progress', `${data.authorId}_${data.courseId}`))
+    if (progressDoc.exists() && progressDoc.data()?.completed === true) {
+      const today = new Date().toISOString().split('T')[0]
+      await awardPoints(data.authorId, '댓글', '강좌 댓글 작성', { dedupKey: today })
+    }
     return docRef.id
   } catch (error) { console.error('강좌 댓글 작성 에러:', error); throw error }
 }
