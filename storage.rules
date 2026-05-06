@@ -1,0 +1,38 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isImage() {
+      return request.resource.contentType != null
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    function isUnder5MB() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // ===== 오프라인 강좌 포스터 =====
+    // 누구나 (로그인 사용자) 읽기, 관리자만 업로드/삭제, 5MB 이미지만
+    match /posters/offline-courses/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isImage() && isUnder5MB();
+      allow delete: if isAdmin();
+    }
+
+    // 그 외 경로는 기본 거부
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

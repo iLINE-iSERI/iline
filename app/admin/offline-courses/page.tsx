@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import {
   getOfflineCourses, createOfflineCourse, updateOfflineCourse, deleteOfflineCourse,
 } from '@/lib/firebase/firestore';
+import { uploadOfflineCoursePoster } from '@/lib/firebase/storage';
 import type { OfflineCourse } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
@@ -36,6 +37,7 @@ function AdminOfflineCoursesContent() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -125,6 +127,21 @@ function AdminOfflineCoursesContent() {
       setCourses(prev => prev.filter(c => c.id !== id));
     } catch {
       alert('삭제 실패');
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // 같은 파일 재선택 가능하도록 초기화
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadOfflineCoursePoster(file, editId ?? undefined);
+      setForm(prev => ({ ...prev, posterUrl: url }));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '업로드 실패');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -234,8 +251,37 @@ function AdminOfflineCoursesContent() {
               <input type="number" min="0" value={form.capacity} onChange={e => setForm({ ...form, capacity: e.target.value })} className={inputClass} />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-600 mb-1">포스터 이미지 URL</label>
-              <input value={form.posterUrl} onChange={e => setForm({ ...form, posterUrl: e.target.value })} placeholder="https://..." className={inputClass} />
+              <label className="block text-sm font-medium text-gray-600 mb-1">포스터 이미지</label>
+              <div className="flex gap-2">
+                <input
+                  value={form.posterUrl}
+                  onChange={e => setForm({ ...form, posterUrl: e.target.value })}
+                  placeholder="이미지 URL 직접 입력 또는 우측에서 파일 선택"
+                  className={`${inputClass} flex-grow`}
+                />
+                <label className={`flex-shrink-0 px-4 py-2 border-2 border-dashed rounded-xl text-sm font-medium cursor-pointer transition ${uploading ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-wait' : 'border-purple-300 text-purple-600 hover:bg-purple-50'}`}>
+                  {uploading ? '업로드 중...' : '📁 파일 선택'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              {form.posterUrl && (
+                <div className="mt-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={form.posterUrl}
+                    alt="미리보기"
+                    className="h-24 w-auto rounded-lg border border-gray-200 object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mt-1">최대 5MB · jpg/png/webp 등 이미지</p>
             </div>
             <div className="sm:col-span-2 flex items-center gap-3">
               <button
