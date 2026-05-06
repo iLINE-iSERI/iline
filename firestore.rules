@@ -1,0 +1,133 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== 헬퍼 함수 =====
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    function isEnrolledIn(courseId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/enrollments/$(request.auth.uid + '_' + courseId));
+    }
+
+    // ===== Users (랭킹 표시 위해 모든 인증 사용자 읽기 허용) =====
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===== Courses / Categories / StudentGroups =====
+    match /courses/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /categories/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /studentGroups/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ===== Enrollments (수강 등록) =====
+    match /enrollments/{id} {
+      allow read: if isSignedIn()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ===== Progress (학습 진도) =====
+    match /progress/{id} {
+      allow read: if isSignedIn()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create, update: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // ===== Posts (공지/자료실) =====
+    match /posts/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ===== Q&A =====
+    match /qna/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid;
+      allow update: if isSignedIn()
+        && (resource.data.authorId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // ===== Point Rules / History =====
+    match /pointRules/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /pointHistory/{id} {
+      allow read: if isSignedIn()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ===== Rewards / Claims =====
+    match /rewards/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /rewardClaims/{id} {
+      allow read: if isSignedIn()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ===== Course Comments =====
+    // 읽기: 작성자 + 해당 강좌 수강생 + 관리자
+    // 작성: 수강 등록한 사용자가 본인 ID로만
+    // 삭제: 관리자만
+    match /courseComments/{id} {
+      allow read: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        isEnrolledIn(resource.data.courseId) ||
+        isAdmin()
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && isEnrolledIn(request.resource.data.courseId);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ===== Quiz Attempts =====
+    match /quizAttempts/{id} {
+      allow read: if isSignedIn()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+  }
+}
