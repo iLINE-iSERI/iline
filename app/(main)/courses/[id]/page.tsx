@@ -33,6 +33,7 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
   const [comments, setComments] = useState<CourseComment[]>([]);
   const [commentInput, setCommentInput] = useState('');
   const [posting, setPosting] = useState(false);
+  const [showCommentForm, setShowCommentForm] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const [quizSelfGraded, setQuizSelfGraded] = useState<Record<string, 'correct' | 'wrong' | null>>({});
@@ -130,11 +131,17 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
       };
       setComments(prev => [optimistic, ...prev]);
       setCommentInput('');
+      setShowCommentForm(false);
     } catch (e) {
       alert('댓글 작성 실패');
     } finally {
       setPosting(false);
     }
+  };
+
+  const handleCancelComment = () => {
+    setCommentInput('');
+    setShowCommentForm(false);
   };
 
   const handleDeleteComment = async (id: string) => {
@@ -580,38 +587,16 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
           </div>
         )}
 
-        {/* 댓글 섹션 (수강생 전용) */}
-        {isEnrolled && (
+        {/* 댓글 섹션 (수강생 + 관리자) */}
+        {(isEnrolled || isAdmin) && (
           <div className="mt-10 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <h2 className="text-xl font-bold text-gray-900 mb-1">댓글</h2>
             <p className="text-sm text-gray-500 mb-5">강좌 내용에 대한 질문이나 의견을 자유롭게 남겨보세요</p>
 
-            <div className="mb-6">
-              <textarea
-                value={commentInput}
-                onChange={(e) => setCommentInput(e.target.value)}
-                placeholder="댓글을 입력하세요"
-                rows={3}
-                maxLength={500}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none transition"
-              />
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-gray-400">{commentInput.length}/500</span>
-                <button
-                  onClick={handleAddComment}
-                  disabled={posting || !commentInput.trim()}
-                  className="bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-semibold py-2 px-5 rounded-lg transition"
-                >
-                  {posting ? '작성 중...' : '댓글 작성'}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {comments.length === 0 ? (
-                <p className="text-center py-8 text-gray-400 text-sm">아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</p>
-              ) : (
-                comments.map(c => (
+            {/* 댓글 목록 */}
+            {comments.length > 0 && (
+              <div className="space-y-3 mb-6">
+                {comments.map(c => (
                   <div key={c.id} className="flex gap-3 p-4 bg-gray-50 rounded-xl">
                     <div className="flex-grow min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -631,9 +616,51 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
                       </button>
                     )}
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {/* 작성 영역 (수강생만) */}
+            {isEnrolled && (
+              showCommentForm ? (
+                <div>
+                  <textarea
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    placeholder="댓글이나 질문을 입력하세요"
+                    rows={3}
+                    maxLength={500}
+                    autoFocus
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none transition"
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-gray-400">{commentInput.length}/500</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleCancelComment}
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition"
+                      >
+                        취소
+                      </button>
+                      <button
+                        onClick={handleAddComment}
+                        disabled={posting || !commentInput.trim()}
+                        className="bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-semibold py-2 px-5 rounded-lg transition"
+                      >
+                        {posting ? '작성 중...' : '제출'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowCommentForm(true)}
+                  className="w-full py-3 border-2 border-dashed border-gray-300 hover:border-purple-400 hover:text-purple-600 rounded-xl text-gray-500 font-medium transition"
+                >
+                  + 댓글/질문 작성
+                </button>
+              )
+            )}
           </div>
         )}
       </div>
