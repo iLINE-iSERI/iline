@@ -8,8 +8,9 @@ import {
   getCourse, enrollCourse, updateProgress, getProgress,
   getUserEnrollments, getCategories,
   getCourseComments, createCourseComment, deleteCourseComment,
+  createQuizAttempt, getUserQuizAttempts,
 } from '@/lib/firebase/firestore';
-import type { Course, Progress, Category, CourseComment } from '@/lib/types';
+import type { Course, Progress, Category, CourseComment, QuizQuestion, QuizAttempt } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { formatSeconds } from '@/lib/utils';
 
@@ -32,6 +33,13 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
   const [comments, setComments] = useState<CourseComment[]>([]);
   const [commentInput, setCommentInput] = useState('');
   const [posting, setPosting] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
+  const [quizSelfGraded, setQuizSelfGraded] = useState<Record<string, 'correct' | 'wrong' | null>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizGenerating, setQuizGenerating] = useState(false);
+  const [quizError, setQuizError] = useState('');
+  const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>([]);
   const lastSavedRef = useRef(0);
   const isAdmin = userProfile?.role === 'admin';
 
@@ -138,6 +146,81 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
       alert('삭제 실패');
     }
   };
+
+  // 학습 완료 시 응시 기록 로드
+  useEffect(() => {
+    if (!user?.uid || !progress?.completed) return;
+    getUserQuizAttempts(user.uid, courseId).then(setQuizAttempts).catch(e => console.error('퀴즈 기록 로드 실패:', e));
+  }, [user?.uid, courseId, progress?.completed]);
+
+  const handleGenerateQuiz = async () => {
+    if (!course) return;
+    setQuizError('');
+    setQuizGenerating(true);
+    setQuizQuestions([]);
+    setQuizAnswers({});
+    setQuizSelfGraded({});
+    setQuizSubmitted(false);
+    try {
+      const res = await fetch(`/api/courses/${courseId}/quiz`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: course.title,
+          description: course.description,
+          youtubeUrl: course.youtubeUrl,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || '퀴즈 생성 실패');
+      setQuizQuestions(data.questions);
+    } catch (e) {
+      setQuizError(e instanceof Error ? e.message : '퀴즈 생성 실패');
+    } finally {
+      setQuizGenerating(false);
+    }
+  };
+
+  const handleSubmitQuiz = async () => {
+    if (!user?.uid || quizQuestions.length === 0) return;
+    let score = 0;
+    let totalAutoGraded = 0;
+    for (const q of quizQuestions) {
+      if (q.type === 'short-answer') continue;
+      totalAutoGraded += 1;
+      if (quizAnswers[q.id] === q.correctAnswer) score += 1;
+    }
+    setQuizSubmitted(true);
+    try {
+      const id = await createQuizAttempt({
+        userId: user.uid,
+        courseId,
+        questions: quizQuestions,
+        answers: quizAnswers,
+        score,
+        totalAutoGraded,
+      });
+      const optimistic: QuizAttempt = {
+        id, userId: user.uid, courseId, questions: quizQuestions, answers: quizAnswers, score, totalAutoGraded,
+        createdAt: { toMillis: () => Date.now(), toDate: () => new Date() } as unknown as QuizAttempt['createdAt'],
+      };
+      setQuizAttempts(prev => [optimistic, ...prev]);
+    } catch (e) {
+      console.error('응시 기록 저장 실패:', e);
+    }
+  };
+
+  const handleRetakeQuiz = () => {
+    setQuizQuestions([]);
+    setQuizAnswers({});
+    setQuizSelfGraded({});
+    setQuizSubmitted(false);
+    setQuizError('');
+  };
+
+  const autoGradedCorrect = quizQuestions.filter(q => q.type !== 'short-answer' && quizAnswers[q.id] === q.correctAnswer).length;
+  const autoGradedTotal = quizQuestions.filter(q => q.type !== 'short-answer').length;
+  const allAnswered = quizQuestions.length > 0 && quizQuestions.every(q => (quizAnswers[q.id] ?? '').trim().length > 0);
 
   const handleProgress = useCallback(async (seconds: number, duration: number) => {
     if (!user?.uid) return;
@@ -305,6 +388,189 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
             </button>
           )}
         </div>
+
+        {/* 퀴즈 섹션 (학습 완료 시에만) */}
+        {isEnrolled && progress?.completed && (
+          <div className="mt-10 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-xl font-bold text-gray-900">학습 점검 퀴즈</h2>
+              {quizAttempts.length > 0 && (
+                <span className="text-xs text-gray-500">이전 응시 {quizAttempts.length}회</span>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 mb-5">강좌 내용을 잘 이해했는지 AI가 만든 퀴즈로 확인해보세요</p>
+
+            {quizError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+                {quizError}
+              </div>
+            )}
+
+            {/* 초기 상태 — 생성 버튼 */}
+            {quizQuestions.length === 0 && !quizGenerating && (
+              <div className="text-center py-6">
+                <button
+                  onClick={handleGenerateQuiz}
+                  className="bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 text-white font-semibold py-3 px-8 rounded-xl transition-all hover:shadow-lg hover:shadow-purple-200"
+                >
+                  ✨ 퀴즈 생성
+                </button>
+                {quizAttempts.length > 0 && (
+                  <p className="text-xs text-gray-400 mt-3">
+                    최근 점수: {quizAttempts[0].score}/{quizAttempts[0].totalAutoGraded}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* 로딩 */}
+            {quizGenerating && (
+              <div className="text-center py-12 text-gray-500">
+                <div className="animate-pulse">퀴즈를 생성 중입니다...</div>
+                <p className="text-xs mt-2">5~15초 정도 걸릴 수 있어요</p>
+              </div>
+            )}
+
+            {/* 문제 목록 */}
+            {quizQuestions.length > 0 && (
+              <div className="space-y-6">
+                {quizQuestions.map((q, idx) => {
+                  const userAnswer = quizAnswers[q.id] ?? '';
+                  const isCorrect = q.type !== 'short-answer' && userAnswer === q.correctAnswer;
+                  const showFeedback = quizSubmitted;
+
+                  return (
+                    <div key={q.id} className="border border-gray-200 rounded-xl p-4">
+                      <div className="flex items-start gap-2 mb-3">
+                        <span className="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded">
+                          Q{idx + 1}
+                        </span>
+                        <span className="text-xs text-gray-500 mt-1">
+                          {q.type === 'multiple-choice' ? '4지선다' : q.type === 'ox' ? 'OX' : '주관식'}
+                        </span>
+                        {showFeedback && q.type !== 'short-answer' && (
+                          <span className={`text-xs font-semibold px-2 py-1 rounded ml-auto ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {isCorrect ? '정답' : '오답'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-medium text-gray-900 mb-3 whitespace-pre-wrap">{q.question}</p>
+
+                      {/* 4지선다 / OX */}
+                      {(q.type === 'multiple-choice' || q.type === 'ox') && (
+                        <div className="space-y-2">
+                          {(q.choices ?? []).map((choice, ci) => {
+                            const value = q.type === 'multiple-choice' ? String(ci) : choice;
+                            const selected = userAnswer === value;
+                            const isAnswer = q.correctAnswer === value;
+                            const cls = showFeedback
+                              ? isAnswer
+                                ? 'border-green-500 bg-green-50 text-green-800'
+                                : selected
+                                  ? 'border-red-500 bg-red-50 text-red-800'
+                                  : 'border-gray-200 bg-white text-gray-600'
+                              : selected
+                                ? 'border-purple-500 bg-purple-50 text-purple-800'
+                                : 'border-gray-200 bg-white text-gray-700 hover:border-purple-300';
+                            return (
+                              <button
+                                type="button"
+                                key={ci}
+                                disabled={showFeedback}
+                                onClick={() => setQuizAnswers(prev => ({ ...prev, [q.id]: value }))}
+                                className={`w-full text-left px-4 py-3 rounded-xl border-2 transition ${cls}`}
+                              >
+                                {q.type === 'multiple-choice' ? `${ci + 1}. ${choice}` : choice}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* 주관식 */}
+                      {q.type === 'short-answer' && (
+                        <div>
+                          <textarea
+                            value={userAnswer}
+                            onChange={(e) => setQuizAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                            disabled={showFeedback}
+                            placeholder="답안을 입력하세요"
+                            rows={2}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none disabled:bg-gray-100"
+                          />
+                          {showFeedback && (
+                            <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                              <p className="text-xs font-semibold text-blue-700 mb-1">모범답안</p>
+                              <p className="text-sm text-blue-900 whitespace-pre-wrap">{q.correctAnswer}</p>
+                              <div className="flex gap-2 mt-3">
+                                <button
+                                  type="button"
+                                  onClick={() => setQuizSelfGraded(prev => ({ ...prev, [q.id]: 'correct' }))}
+                                  className={`text-xs font-medium px-3 py-1.5 rounded-lg border-2 transition ${quizSelfGraded[q.id] === 'correct' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-600 hover:border-green-300'}`}
+                                >
+                                  맞춘 것 같아요
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setQuizSelfGraded(prev => ({ ...prev, [q.id]: 'wrong' }))}
+                                  className={`text-xs font-medium px-3 py-1.5 rounded-lg border-2 transition ${quizSelfGraded[q.id] === 'wrong' ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 bg-white text-gray-600 hover:border-red-300'}`}
+                                >
+                                  더 공부할게요
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 해설 */}
+                      {showFeedback && q.explanation && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                          <p className="text-xs font-semibold text-gray-600 mb-1">해설</p>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{q.explanation}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* 결과 / 액션 버튼 */}
+                {!quizSubmitted ? (
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={handleRetakeQuiz}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-5 rounded-lg transition"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handleSubmitQuiz}
+                      disabled={!allAnswered}
+                      className="bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-semibold py-2 px-6 rounded-lg transition"
+                    >
+                      답안 제출
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-gradient-to-r from-purple-50 to-teal-50 rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">자동 채점 결과</p>
+                      <p className="text-2xl font-bold text-purple-700">
+                        {autoGradedCorrect} / {autoGradedTotal} 정답
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleGenerateQuiz}
+                      className="bg-white hover:bg-gray-50 border-2 border-purple-300 text-purple-700 font-semibold py-2 px-5 rounded-lg transition"
+                    >
+                      🔄 다시 풀기
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 댓글 섹션 (수강생 전용) */}
         {isEnrolled && (

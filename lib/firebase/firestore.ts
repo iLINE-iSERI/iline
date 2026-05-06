@@ -3,7 +3,7 @@ import {
   query, where, orderBy, serverTimestamp, increment, limit,
 } from 'firebase/firestore'
 import { db } from './config'
-import type { Course, UserProfile, Enrollment, Progress, Post, PointRule, PointHistory, QnA, Category, StudentGroup, Reward, RewardClaim, CourseComment } from '@/lib/types'
+import type { Course, UserProfile, Enrollment, Progress, Post, PointRule, PointHistory, QnA, Category, StudentGroup, Reward, RewardClaim, CourseComment, QuizAttempt } from '@/lib/types'
 
 // ===== Users =====
 export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt'>) {
@@ -412,4 +412,26 @@ export async function deleteCourseComment(commentId: string) {
   try {
     await deleteDoc(doc(db, 'courseComments', commentId))
   } catch (error) { console.error('강좌 댓글 삭제 에러:', error); throw error }
+}
+
+// ===== Quiz Attempts =====
+export async function createQuizAttempt(data: Omit<QuizAttempt, 'id' | 'createdAt'>): Promise<string> {
+  try {
+    const docRef = doc(collection(db, 'quizAttempts'))
+    await setDoc(docRef, { ...data, createdAt: serverTimestamp() })
+    return docRef.id
+  } catch (error) { console.error('퀴즈 응시 기록 저장 에러:', error); throw error }
+}
+
+export async function getUserQuizAttempts(userId: string, courseId: string): Promise<QuizAttempt[]> {
+  try {
+    const q = query(
+      collection(db, 'quizAttempts'),
+      where('userId', '==', userId),
+      where('courseId', '==', courseId),
+    )
+    const snapshot = await getDocs(q)
+    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as QuizAttempt))
+    return items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
+  } catch (error) { console.error('퀴즈 응시 기록 조회 에러:', error); return [] }
 }

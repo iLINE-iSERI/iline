@@ -115,6 +115,30 @@ export interface StudentGroup {
   [key: string]: any
 }
 
+export type QuizQuestionType = 'multiple-choice' | 'ox' | 'short-answer'
+
+export interface QuizQuestion {
+  id: string
+  type: QuizQuestionType
+  question: string
+  choices?: string[]
+  correctAnswer: string
+  explanation?: string
+  [key: string]: any
+}
+
+export interface QuizAttempt {
+  id: string
+  userId: string
+  courseId: string
+  questions: QuizQuestion[]
+  answers: Record<string, string>
+  score: number
+  totalAutoGraded: number
+  createdAt: Timestamp
+  [key: string]: any
+}
+
 export interface CourseComment {
   id: string
   courseId: string
