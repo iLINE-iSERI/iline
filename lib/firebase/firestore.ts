@@ -105,19 +105,12 @@ export async function getUserEnrollments(userId: string): Promise<Enrollment[]> 
 export async function updateProgress(userId: string, courseId: string, data: Partial<Omit<Progress, 'userId' | 'courseId'>>) {
   try {
     const progressId = `${userId}_${courseId}`
-
-    let alreadyCompleted = false
-    if (data.completed === true) {
-      const existing = await getDoc(doc(db, 'progress', progressId))
-      alreadyCompleted = existing.exists() && existing.data()?.completed === true
-    }
-
     const updateData: Record<string, unknown> = { ...data, userId, courseId, updatedAt: serverTimestamp() }
     if (data.completed) { updateData.completedAt = serverTimestamp() }
     await setDoc(doc(db, 'progress', progressId), updateData, { merge: true })
 
-    if (data.completed === true && !alreadyCompleted) {
-      await awardPoints(userId, 'course-complete', '강좌 수강 완료')
+    if (data.completed === true) {
+      await awardPoints(userId, 'course-complete', '강좌 수강 완료', { dedupKey: courseId })
     }
   } catch (error) { console.error('학습 진도 업데이트 에러:', error); throw error }
 }
@@ -195,17 +188,29 @@ export async function deletePointRule(ruleId: string) {
 }
 
 // ===== 그뤠잇 포인트 부여 =====
-export async function awardPoints(userId: string, action: string, description: string) {
+export async function awardPoints(
+  userId: string,
+  action: string,
+  description: string,
+  opts?: { dedupKey?: string }
+) {
   try {
     const rules = await getPointRules()
     const rule = rules.find(r => r.action === action && r.isActive)
     if (!rule) return 0
+
+    let dedupId: string | null = null
     if (action === 'daily-login') {
       const today = new Date().toISOString().split('T')[0]
-      const checkId = `${userId}_${action}_${today}`
-      const existing = await getDoc(doc(db, 'pointHistory', checkId))
+      dedupId = `${userId}_${action}_${today}`
+    } else if (opts?.dedupKey) {
+      dedupId = `${userId}_${action}_${opts.dedupKey}`
+    }
+
+    if (dedupId) {
+      const existing = await getDoc(doc(db, 'pointHistory', dedupId))
       if (existing.exists()) return 0
-      await setDoc(doc(db, 'pointHistory', checkId), {
+      await setDoc(doc(db, 'pointHistory', dedupId), {
         userId, action, points: rule.points, description, createdAt: serverTimestamp(),
       })
     } else {
