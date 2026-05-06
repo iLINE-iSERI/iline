@@ -17,8 +17,21 @@ export async function POST(
 ) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
+    // 임시 진단 코드 — 환경변수 문제 해결 후 제거 예정
+    const relatedKeys = Object.keys(process.env).filter(
+      (k) => k.toUpperCase().includes('GEMINI') || k.toUpperCase().includes('GOOGLE')
+    )
     return NextResponse.json(
-      { error: 'GEMINI_API_KEY 환경변수가 설정되지 않았습니다' },
+      {
+        error: 'GEMINI_API_KEY 환경변수가 설정되지 않았습니다',
+        debug: {
+          relatedEnvKeys: relatedKeys,
+          rawHasGeminiApiKey: 'GEMINI_API_KEY' in process.env,
+          vercelEnv: process.env.VERCEL_ENV ?? null,
+          nodeEnv: process.env.NODE_ENV ?? null,
+          deploymentUrl: process.env.VERCEL_URL ?? null,
+        },
+      },
       { status: 500 }
     )
   }
