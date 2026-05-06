@@ -143,6 +143,14 @@ function OfflineCourseDetailContent({ courseId }: { courseId: string }) {
             <span className="font-bold text-lg">{STATUS_LABEL[myApp.status]}</span>
           </div>
           <p className="text-sm">{STATUS_DESC[myApp.status]}</p>
+          {myApp.status === 'completed' && (
+            <button
+              onClick={() => router.push(`/my/certificates/${course.id}`)}
+              className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 rounded-lg transition"
+            >
+              🏆 수료증 보기
+            </button>
+          )}
         </div>
       ) : course.isOpen ? (
         <button

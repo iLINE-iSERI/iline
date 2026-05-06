@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/hooks/useAuth';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { getUserEnrollments, getProgress } from '@/lib/firebase/firestore';
@@ -112,6 +113,32 @@ function MypageContent() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* 빠른 링크 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+        <Link
+          href="/my/certificates"
+          className="bg-white rounded-xl border border-gray-200 hover:border-purple-300 hover:shadow-md transition p-5 flex items-center gap-4"
+        >
+          <div className="text-3xl">🏆</div>
+          <div className="flex-grow">
+            <div className="font-bold text-gray-900">내 수료증</div>
+            <div className="text-xs text-gray-500">오프라인 강좌 수료증</div>
+          </div>
+          <span className="text-purple-600 text-sm font-medium">→</span>
+        </Link>
+        <Link
+          href="/leaderboard"
+          className="bg-white rounded-xl border border-gray-200 hover:border-purple-300 hover:shadow-md transition p-5 flex items-center gap-4"
+        >
+          <div className="text-3xl">⚡</div>
+          <div className="flex-grow">
+            <div className="font-bold text-gray-900">내 그뤠잇</div>
+            <div className="text-xs text-gray-500">포인트 내역 + 랭킹</div>
+          </div>
+          <span className="text-purple-600 text-sm font-medium">→</span>
+        </Link>
       </div>
 
       {/* 계정 정보 */}
