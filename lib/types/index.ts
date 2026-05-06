@@ -13,6 +13,8 @@ export interface UserProfile {
   phone?: string
   school?: string
   grade?: string
+  category?: 'youth' | 'adult'
+  gender?: 'male' | 'female' | 'unspecified'
   createdAt: Timestamp
   [key: string]: any
 }

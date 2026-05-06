@@ -15,23 +15,31 @@ import { awardPoints } from './firestore'
 const googleProvider = new GoogleAuthProvider()
 
 // 이메일/비밀번호 회원가입
-export async function signUpWithEmail(
-  email: string,
-  password: string,
-  name: string,
-  birthDate: string,
+export interface SignUpInput {
+  email: string
+  password: string
+  name: string
+  birthDate: string
+  category: 'youth' | 'adult'
   group: string
-) {
+  gender: 'male' | 'female' | 'unspecified'
+  phone: string
+}
+
+export async function signUpWithEmail(input: SignUpInput) {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+    const userCredential = await createUserWithEmailAndPassword(auth, input.email, input.password)
     const user = userCredential.user
 
     await setDoc(doc(db, 'users', user.uid), {
       uid: user.uid,
       email: user.email,
-      name,
-      birthDate,
-      group,
+      name: input.name,
+      birthDate: input.birthDate,
+      category: input.category,
+      group: input.group,
+      gender: input.gender,
+      phone: input.phone,
       role: 'student',
       totalPoints: 0,
       createdAt: serverTimestamp(),
