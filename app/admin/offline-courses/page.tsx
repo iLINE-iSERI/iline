@@ -175,6 +175,9 @@ function AdminOfflineCoursesContent() {
                 </div>
               </div>
               <div className="flex flex-col gap-1 flex-shrink-0">
+                <button onClick={() => router.push(`/admin/offline-courses/${c.id}/applicants`)} className="text-xs font-medium px-3 py-1.5 rounded-lg border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 transition">
+                  신청자 관리
+                </button>
                 <button onClick={() => handleToggleOpen(c)} className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
                   {c.isOpen ? '닫기' : '열기'}
                 </button>
