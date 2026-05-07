@@ -1,7 +1,7 @@
 // Firebase 초기화 설정
 import { initializeApp, getApps } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, initializeFirestore, type Firestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
@@ -16,7 +16,16 @@ const firebaseConfig = {
 // Firebase 앱 중복 초기화 방지
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
 
+// Firestore: undefined 필드 자동 무시 (옵셔널 필드를 빈 값으로 둘 수 있도록)
+let _db: Firestore
+try {
+  _db = initializeFirestore(app, { ignoreUndefinedProperties: true })
+} catch {
+  // 이미 초기화된 경우 (HMR 등): 기존 인스턴스 재사용
+  _db = getFirestore(app)
+}
+
 export const auth = getAuth(app)
-export const db = getFirestore(app)
+export const db = _db
 export const storage = getStorage(app)
 export default app
