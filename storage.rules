@@ -30,6 +30,13 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // ===== 게시판(공지/자료실) 첨부 이미지 =====
+    match /posts/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isImage() && isUnder5MB();
+      allow delete: if isAdmin();
+    }
+
     // 그 외 경로는 기본 거부
     match /{allPaths=**} {
       allow read, write: if false;

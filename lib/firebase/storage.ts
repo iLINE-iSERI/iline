@@ -37,3 +37,19 @@ export async function uploadOfflineCoursePoster(file: File, courseId?: string): 
     : `posters/offline-courses/_new/${filename}`
   return uploadFile(file, path)
 }
+
+/**
+ * 게시판 글(공지/자료실)에 첨부할 이미지를 업로드.
+ */
+export async function uploadPostImage(file: File, postType: 'notice' | 'resource' = 'notice'): Promise<string> {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('이미지 파일만 업로드 가능합니다')
+  }
+  if (file.size > MAX_POSTER_BYTES) {
+    throw new Error('파일 크기는 5MB 이하여야 합니다')
+  }
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+  const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const path = `posts/${postType}/${filename}`
+  return uploadFile(file, path)
+}

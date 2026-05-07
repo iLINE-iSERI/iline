@@ -69,3 +69,22 @@ export function formatSeconds(seconds: number): string {
 
   return `${minutes}:${String(secs).padStart(2, '0')}`;
 }
+
+/**
+ * 텍스트 안의 URL을 감지해 [텍스트, {url}, 텍스트, ...] 형태의 토큰 배열로 반환.
+ * 호출하는 쪽에서 React로 렌더링 시 `<a>`로 감싸 클릭 가능하게 만들 수 있다.
+ */
+export function tokenizeWithUrls(text: string): Array<string | { url: string }> {
+  if (!text) return [];
+  const urlRegex = /(https?:\/\/[^\s<>"'\)]+[^\s<>"'\.,;:!?\)])/g;
+  const out: Array<string | { url: string }> = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = urlRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) out.push(text.slice(lastIndex, match.index));
+    out.push({ url: match[1] });
+    lastIndex = urlRegex.lastIndex;
+  }
+  if (lastIndex < text.length) out.push(text.slice(lastIndex));
+  return out;
+}
