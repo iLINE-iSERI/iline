@@ -132,7 +132,8 @@ function MypageContent() {
           href="/leaderboard"
           className="bg-white rounded-xl border border-gray-200 hover:border-purple-300 hover:shadow-md transition p-5 flex items-center gap-4"
         >
-          <div className="text-3xl">⚡</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/great.png" alt="GREAT" className="w-14 h-14 object-contain flex-shrink-0" />
           <div className="flex-grow">
             <div className="font-bold text-gray-900">내 그뤠잇</div>
             <div className="text-xs text-gray-500">포인트 내역 + 랭킹</div>

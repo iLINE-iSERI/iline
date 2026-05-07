@@ -47,8 +47,14 @@ function LeaderboardContent() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* 내 포인트 카드 */}
-      <div className="bg-gradient-to-r from-teal-500 to-blue-500 rounded-2xl p-6 text-white mb-8 shadow-lg">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-teal-500 to-blue-500 rounded-2xl p-6 text-white mb-8 shadow-lg relative overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/great.png"
+          alt="GREAT"
+          className="absolute -right-3 -bottom-4 w-32 h-32 sm:w-40 sm:h-40 object-contain pointer-events-none drop-shadow-lg select-none"
+        />
+        <div className="relative flex items-center justify-between pr-24 sm:pr-32">
           <div>
             <p className="text-teal-100 text-sm font-medium mb-1">나의 그뤠잇</p>
             <p className="text-4xl font-bold">{myPoints.toLocaleString()}</p>
