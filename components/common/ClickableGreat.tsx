@@ -36,8 +36,12 @@ export default function ClickableGreat({ containerClassName = '', imageClassName
     }
   };
 
+  // containerClassName이 비어있을 때만 기본 inline 스타일 적용.
+  // 호출자가 absolute 등 다른 position을 넘기면 그것을 그대로 사용.
+  const wrapperClass = containerClassName || 'relative inline-block';
+
   return (
-    <div className={`relative inline-block ${containerClassName}`}>
+    <div className={wrapperClass}>
       <button
         type="button"
         onClick={handleClick}
