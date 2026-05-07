@@ -44,7 +44,11 @@ export default function Header() {
               <div className="w-8 h-8 bg-purple-100 rounded-full animate-pulse" />
             ) : user ? (
               <div className="flex items-center space-x-2">
-                <Link href="/mypage" className="text-sm text-gray-600 hover:text-purple-600 font-medium transition-colors">{profile?.name || user.email}</Link>
+                <Link href="/mypage" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-purple-600 font-medium transition-colors">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/great.png" alt="" className="w-6 h-6 object-contain flex-shrink-0" />
+                  {profile?.name || user.email}
+                </Link>
                 {profile?.role === 'admin' && (
                   <>
                     <Link href="/admin/courses" className="text-xs bg-gradient-to-r from-purple-600 to-teal-500 text-white px-3 py-1 rounded-full font-medium">강좌관리</Link>
