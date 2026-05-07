@@ -157,6 +157,18 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // ===== Hidden Click Counter (히든 그뤠잇 일별 카운트) =====
+    match /hiddenClicks/{id} {
+      allow read: if isSignedIn() && (
+        resource == null ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create, update: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
     // ===== Quiz Attempts =====
     match /quizAttempts/{id} {
       allow read: if isSignedIn() && (

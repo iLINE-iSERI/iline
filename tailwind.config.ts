@@ -42,6 +42,7 @@ const config: Config = {
         'slide-in': 'slideIn 0.4s ease-out',
         'gradient': 'gradient 8s ease infinite',
         'pulse-soft': 'pulseSoft 3s ease-in-out infinite',
+        'float-up': 'floatUp 1.5s ease-out forwards',
       },
       keyframes: {
         float: {
@@ -67,6 +68,11 @@ const config: Config = {
         pulseSoft: {
           '0%, 100%': { opacity: '0.6' },
           '50%': { opacity: '1' },
+        },
+        floatUp: {
+          '0%': { opacity: '0', transform: 'translate(-50%, 0) scale(0.5)' },
+          '20%': { opacity: '1', transform: 'translate(-50%, -10px) scale(1.2)' },
+          '100%': { opacity: '0', transform: 'translate(-50%, -80px) scale(1)' },
         },
       },
       backgroundSize: {

@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
-  query, where, orderBy, serverTimestamp, increment, limit,
+  query, where, orderBy, serverTimestamp, increment, limit, runTransaction,
 } from 'firebase/firestore'
 import { db } from './config'
 import type { Course, UserProfile, Enrollment, Progress, Post, PointRule, PointHistory, QnA, Category, StudentGroup, Reward, RewardClaim, CourseComment, QuizAttempt, OfflineCourse, OfflineApplication, OfflineApplicationStatus, CertificateSettings } from '@/lib/types'
@@ -452,6 +452,50 @@ export async function createQuizAttempt(data: Omit<QuizAttempt, 'id' | 'createdA
     await setDoc(docRef, { ...data, createdAt: serverTimestamp() })
     return docRef.id
   } catch (error) { console.error('퀴즈 응시 기록 저장 에러:', error); throw error }
+}
+
+// ===== Hidden GREAT click (메인/리더보드 고래 클릭 시 +1, 일별 최대 10) =====
+const HIDDEN_DAILY_MAX = 10
+
+export async function claimHiddenGreat(userId: string): Promise<{ success: boolean; remaining: number }> {
+  const today = new Date().toISOString().split('T')[0]
+  const counterRef = doc(db, 'hiddenClicks', `${userId}_${today}`)
+  const userRef = doc(db, 'users', userId)
+  try {
+    return await runTransaction(db, async (tx) => {
+      const counterSnap = await tx.get(counterRef)
+      const current = counterSnap.exists() ? ((counterSnap.data().count as number) ?? 0) : 0
+      if (current >= HIDDEN_DAILY_MAX) {
+        return { success: false, remaining: 0 }
+      }
+      const next = current + 1
+      if (counterSnap.exists()) {
+        tx.update(counterRef, { count: next, updatedAt: serverTimestamp() })
+      } else {
+        tx.set(counterRef, {
+          userId,
+          date: today,
+          count: next,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+      }
+      const historyId = `${userId}_hidden-click_${today}_${next}`
+      const historyRef = doc(db, 'pointHistory', historyId)
+      tx.set(historyRef, {
+        userId,
+        action: 'hidden-click',
+        points: 1,
+        description: '히든 그뤠잇',
+        createdAt: serverTimestamp(),
+      })
+      tx.update(userRef, { totalPoints: increment(1) })
+      return { success: true, remaining: HIDDEN_DAILY_MAX - next }
+    })
+  } catch (e) {
+    console.error('히든 그뤠잇 적립 에러:', e)
+    return { success: false, remaining: 0 }
+  }
 }
 
 export async function getUserQuizAttempts(userId: string, courseId: string): Promise<QuizAttempt[]> {

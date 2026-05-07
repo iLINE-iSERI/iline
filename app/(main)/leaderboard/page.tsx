@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { getLeaderboard, getUserPointHistory } from '@/lib/firebase/firestore';
 import type { UserProfile, PointHistory } from '@/lib/types';
+import ClickableGreat from '@/components/common/ClickableGreat';
 
 function LeaderboardContent() {
   const { user, userProfile } = useAuth();
@@ -47,12 +48,10 @@ function LeaderboardContent() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* 내 포인트 카드 */}
-      <div className="bg-gradient-to-r from-teal-500 to-blue-500 rounded-2xl p-6 text-white mb-8 shadow-lg relative overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/great.png"
-          alt="GREAT"
-          className="absolute -right-3 -bottom-4 w-32 h-32 sm:w-40 sm:h-40 object-contain pointer-events-none drop-shadow-lg select-none"
+      <div className="bg-gradient-to-r from-teal-500 to-blue-500 rounded-2xl p-6 text-white mb-8 shadow-lg relative">
+        <ClickableGreat
+          containerClassName="absolute -right-3 -bottom-4 w-32 h-32 sm:w-40 sm:h-40 z-10"
+          imageClassName="w-full h-full object-contain drop-shadow-lg"
         />
         <div className="relative flex items-center justify-between pr-24 sm:pr-32">
           <div>

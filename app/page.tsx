@@ -4,6 +4,7 @@ import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { HeroButtons, CtaButton } from '@/components/home/ActionButton'
 import OpenOfflineCoursesPreview from '@/components/home/OpenOfflineCoursesPreview'
+import ClickableGreat from '@/components/common/ClickableGreat'
 
 export default function HomePage() {
   return (
@@ -15,12 +16,10 @@ export default function HomePage() {
           <div className="absolute top-20 left-10 w-72 h-72 bg-teal-300/20 rounded-full blur-3xl animate-float" />
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-300/20 rounded-full blur-3xl animate-float-delay" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl" />
-          {/* GREAT mascot */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/great.png"
-            alt="GREAT"
-            className="hidden md:block absolute bottom-8 right-8 lg:right-16 w-40 lg:w-56 xl:w-64 object-contain pointer-events-none select-none drop-shadow-2xl animate-float-delay"
+          {/* GREAT mascot — 클릭 시 +1 그뤠잇 (일별 최대 10) */}
+          <ClickableGreat
+            containerClassName="hidden md:block absolute bottom-8 right-8 lg:right-16 w-40 lg:w-56 xl:w-64 z-10"
+            imageClassName="w-full object-contain drop-shadow-2xl animate-float-delay"
           />
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
             <div className="text-center animate-fade-in-up">
