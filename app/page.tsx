@@ -59,12 +59,9 @@ export default function HomePage() {
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-100 text-teal-700 text-sm font-medium mb-4">
                iLINE은
               </div>
-              <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">
+              <h2 className="text-3xl md:text-5xl font-bold text-gray-900">
                 AI 학습을 위한 <span className="bg-gradient-to-r from-teal-500 to-blue-500 bg-clip-text text-transparent">최적의 환경</span>
               </h2>
-              <p className="text-gray-500 text-lg max-w-xl mx-auto">
-                유아부터 시니어까지 모두를 위한 체계적이고 직관적인 교육을 제공합니다
-              </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="card-hover group relative bg-gradient-to-br from-teal-50 to-white p-8 rounded-3xl border border-teal-100">
