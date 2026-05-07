@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { HeroButtons, CtaButton } from '@/components/home/ActionButton'
+import OpenOfflineCoursesPreview from '@/components/home/OpenOfflineCoursesPreview'
 
 export default function HomePage() {
   return (
@@ -133,6 +134,8 @@ export default function HomePage() {
                 <p className="text-cyan-200 text-sm">프로그래밍의 기초부터 실습까지 도전하세요</p>
               </Link>
             </div>
+
+            <OpenOfflineCoursesPreview />
           </div>
         </section>
 
@@ -142,11 +145,7 @@ export default function HomePage() {
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl" />
           <div className="relative max-w-4xl mx-auto px-4 text-center text-white">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">지금 바로 시작하세요</h2>
-            <p className="text-blue-200 text-lg mb-10 max-w-xl mx-auto">
-              무료 계정으로 모든 강의를 수강할 수 있습니다.
-              초중고 학생과 교사 누구나 환영합니다.
-            </p>
+            <h2 className="text-3xl md:text-5xl font-bold mb-10">지금 바로 시작하세요</h2>
             <CtaButton />
           </div>
         </section>

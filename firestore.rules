@@ -139,9 +139,9 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // ===== Offline Courses =====
+    // ===== Offline Courses (메인 페이지에서 비로그인 방문자도 미리보기 가능) =====
     match /offlineCourses/{id} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
 
