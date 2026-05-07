@@ -28,11 +28,11 @@ export default function HomePage() {
                 <span className="w-2 h-2 bg-teal-300 rounded-full animate-pulse-soft" />
                 AI 공공 교육 플랫폼
               </div>
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-                나에게 딱 맞는 인공지능 라인
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight tracking-tight drop-shadow-lg">
+                나에게 딱 맞는
                 <br />
-                <span className="bg-gradient-to-r from-teal-200 to-cyan-200 bg-clip-text text-transparent">
-                
+                <span className="bg-gradient-to-r from-teal-200 via-cyan-200 to-blue-300 bg-clip-text text-transparent">
+                  인공지능 라인
                 </span>
               </h1>
               <p className="text-lg md:text-xl text-blue-100 mb-10 max-w-2xl mx-auto leading-relaxed">

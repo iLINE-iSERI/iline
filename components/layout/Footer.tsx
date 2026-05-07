@@ -12,9 +12,9 @@ export default function Footer() {
               iLINE
             </span>
             <p className="mt-3 text-sm leading-relaxed max-w-sm">
-              지능소프트웨어교육연구소
+              제주대학교 지능소프트웨어교육연구소
               <br />
-              초중고 학생과 교사를 위한 무료 AI 교육 플랫폼
+              모두를 위한 무료 AI 교육 플랫폼
             </p>
             <div className="mt-4 flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-900/50 text-teal-400 text-xs font-medium">
@@ -59,7 +59,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-10 pt-8 border-t border-gray-800 text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} iLINE 지능소프트웨어교육연구소. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} iLINE 제주대학교 지능소프트웨어교육연구소. All rights reserved.</p>
         </div>
       </div>
     </footer>
