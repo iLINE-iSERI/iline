@@ -28,8 +28,8 @@ export default function HomeHeroGreat() {
 
   return (
     <ClickableGreat
-      containerClassName={`hidden md:block absolute ${pos} w-40 lg:w-56 xl:w-64 z-10 transition-all duration-700 ease-out`}
-      imageClassName="w-full object-contain drop-shadow-2xl animate-float-delay"
+      containerClassName={`absolute ${pos} w-24 sm:w-32 md:w-40 lg:w-56 xl:w-64 z-10 transition-all duration-300 ease-out`}
+      imageClassName="w-full object-contain drop-shadow-2xl animate-float-fast"
     />
   );
 }

@@ -37,6 +37,7 @@ const config: Config = {
       animation: {
         'float': 'float 6s ease-in-out infinite',
         'float-delay': 'float 6s ease-in-out 2s infinite',
+        'float-fast': 'float 3s ease-in-out infinite',
         'fade-in-up': 'fadeInUp 0.6s ease-out',
         'fade-in': 'fadeIn 0.5s ease-out',
         'slide-in': 'slideIn 0.4s ease-out',
