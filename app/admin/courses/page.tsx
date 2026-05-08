@@ -124,7 +124,27 @@ export default function AdminCoursesPage() {
   };
 
   // === 카테고리 핸들러 ===
+  const handleSeedDefaultCats = async () => {
+    if (!confirm('기본 카테고리(AI 기초 / AI 윤리 / 코딩)를 DB에 생성하시겠습니까?')) return;
+    try {
+      const created: Category[] = [];
+      for (const dc of defaultCategories) {
+        const newId = await createCategory({ name: dc.name, slug: dc.slug, order: dc.order });
+        created.push({ id: newId, name: dc.name, slug: dc.slug, order: dc.order } as Category);
+      }
+      setCategories(created);
+      alert('기본 카테고리가 생성되었습니다');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '알 수 없는 오류';
+      alert(`기본 카테고리 생성 실패: ${msg}`);
+    }
+  };
+
   const handleAddCat = async () => {
+    if (editingCatId && categories.length === 0) {
+      alert('아직 DB에 저장된 카테고리가 없습니다. 화면의 항목들은 임시 폴백입니다. 먼저 "기본 카테고리 생성" 버튼을 눌러 DB에 등록하거나, 새 카테고리로 추가하세요.');
+      return;
+    }
     if (!catName.trim()) { alert('카테고리명을 입력하세요'); return; }
     const slug = catSlug.trim() || catName.trim().toLowerCase().replace(/\s+/g, '-');
     try {
@@ -205,6 +225,22 @@ export default function AdminCoursesPage() {
       {activeTab === 'categories' && (
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-6">카테고리 관리</h1>
+
+          {/* 폴백 안내 */}
+          {categories.length === 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center justify-between gap-4">
+              <div>
+                <p className="font-semibold text-amber-900 text-sm">아래 카테고리는 임시 폴백입니다</p>
+                <p className="text-amber-700 text-xs mt-1">DB에 카테고리가 하나도 없어서 코드 안의 기본값을 보여드리는 중. 수정/삭제하려면 먼저 DB에 등록해주세요.</p>
+              </div>
+              <button
+                onClick={handleSeedDefaultCats}
+                className="flex-shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-lg text-sm whitespace-nowrap"
+              >
+                기본 카테고리 생성
+              </button>
+            </div>
+          )}
 
           {/* 카테고리 추가/수정 폼 */}
           <div className="bg-white rounded-lg shadow p-6 mb-6">
