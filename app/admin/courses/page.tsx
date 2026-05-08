@@ -83,8 +83,9 @@ export default function AdminCoursesPage() {
       setEditingId(null);
       setShowForm(false);
     } catch (error) {
+      const msg = error instanceof Error ? error.message : '알 수 없는 오류';
       console.error('강좌 저장 실패:', error);
-      alert('강좌 저장에 실패했습니다');
+      alert(`강좌 저장 실패: ${msg}`);
     }
   };
 
@@ -138,7 +139,9 @@ export default function AdminCoursesPage() {
       setCatName('');
       setCatSlug('');
     } catch (error) {
-      alert('카테고리 저장 실패');
+      const msg = error instanceof Error ? error.message : '알 수 없는 오류';
+      console.error('카테고리 저장 실패:', error);
+      alert(`카테고리 저장 실패: ${msg}`);
     }
   };
 
