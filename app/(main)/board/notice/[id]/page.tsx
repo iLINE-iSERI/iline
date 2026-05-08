@@ -15,7 +15,20 @@ function NoticeDetailContent({ id }: { id: string }) {
   const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
+  const [zoomed, setZoomed] = useState(false);
   const isAdmin = userProfile?.role === 'admin';
+
+  useEffect(() => {
+    if (!zoomed) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setZoomed(false); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [zoomed]);
 
   useEffect(() => {
     if (!id) return;
@@ -75,9 +88,11 @@ function NoticeDetailContent({ id }: { id: string }) {
             <img
               src={post.attachmentUrl}
               alt={post.title}
-              className="w-full max-h-96 object-contain mx-auto"
+              className="w-full max-h-96 object-contain mx-auto cursor-zoom-in transition hover:opacity-90"
+              onClick={() => setZoomed(true)}
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
+            <p className="text-center text-xs text-gray-400 pb-2">이미지를 클릭하면 크게 볼 수 있어요</p>
           </div>
         )}
         <div className="p-6 sm:p-8">
@@ -102,6 +117,32 @@ function NoticeDetailContent({ id }: { id: string }) {
           </div>
         </div>
       </article>
+
+      {zoomed && post.attachmentUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setZoomed(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="이미지 확대 보기"
+        >
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setZoomed(false); }}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl flex items-center justify-center transition"
+            aria-label="닫기"
+          >
+            ×
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={post.attachmentUrl}
+            alt={post.title}
+            className="max-w-full max-h-full object-contain select-none"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
