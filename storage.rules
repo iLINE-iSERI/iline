@@ -34,6 +34,13 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // ===== 보상 상품 이미지 =====
+    match /rewards/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isImage() && isUnder5MB();
+      allow delete: if isAdmin();
+    }
+
     // ===== 자료실 첨부 파일 (PDF, PPT, 한글 등 모든 형식 허용) =====
     match /posts/resource/{allPaths=**} {
       allow read: if isSignedIn();

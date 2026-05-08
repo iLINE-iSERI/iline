@@ -6,6 +6,7 @@ import {
   getRewards, createReward, updateReward, deleteReward,
   getAllClaims, updateClaimStatus,
 } from '@/lib/firebase/firestore';
+import { uploadRewardImage } from '@/lib/firebase/storage';
 import type { PointRule, Reward, RewardClaim } from '@/lib/types';
 
 const defaultActions = [
@@ -28,6 +29,7 @@ export default function AdminPointsPage() {
   const [rwName, setRwName] = useState(''); const [rwDesc, setRwDesc] = useState('');
   const [rwImg, setRwImg] = useState(''); const [rwPts, setRwPts] = useState(100); const [rwStock, setRwStock] = useState(10);
   const [editRewardId, setEditRewardId] = useState<string | null>(null); const [showRewardForm, setShowRewardForm] = useState(false);
+  const [rwUploading, setRwUploading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -102,6 +104,20 @@ export default function AdminPointsPage() {
   const handleEditReward = (r: Reward) => {
     setRwName(r.name); setRwDesc(r.description); setRwImg(r.imageUrl || ''); setRwPts(r.requiredPoints); setRwStock(r.stock);
     setEditRewardId(r.id); setShowRewardForm(true);
+  };
+  const handleRewardImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setRwUploading(true);
+    try {
+      const url = await uploadRewardImage(file);
+      setRwImg(url);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '업로드 실패');
+    } finally {
+      setRwUploading(false);
+    }
   };
 
   // === 교환 신청 핸들러 ===
@@ -183,7 +199,26 @@ export default function AdminPointsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             {rewards.map(rw => (
               <div key={rw.id} className={`bg-white rounded-xl shadow-sm border p-5 ${rw.isActive ? 'border-teal-200' : 'border-gray-200 opacity-60'}`}>
-                {rw.imageUrl && <img src={rw.imageUrl} alt={rw.name} className="w-full h-32 object-cover rounded-lg mb-3" />}
+                {rw.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={rw.imageUrl}
+                    alt={rw.name}
+                    className="w-full h-32 object-cover rounded-lg mb-3 bg-gray-50"
+                    onError={(e) => {
+                      const t = e.target as HTMLImageElement;
+                      t.style.display = 'none';
+                      const placeholder = t.nextElementSibling as HTMLElement | null;
+                      if (placeholder) placeholder.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div
+                  className="w-full h-32 rounded-lg mb-3 bg-gray-100 text-gray-400 text-xs items-center justify-center"
+                  style={{ display: rw.imageUrl ? 'none' : 'flex' }}
+                >
+                  이미지 없음
+                </div>
                 <h3 className="font-bold text-gray-900 mb-1">{rw.name}</h3>
                 <p className="text-sm text-gray-500 mb-3 line-clamp-2">{rw.description}</p>
                 <div className="flex items-center justify-between mb-3">
@@ -208,7 +243,27 @@ export default function AdminPointsPage() {
               <div className="space-y-3 mb-4">
                 <input value={rwName} onChange={e=>setRwName(e.target.value)} placeholder="상품명 (예: 스타벅스 아메리카노)" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" />
                 <input value={rwDesc} onChange={e=>setRwDesc(e.target.value)} placeholder="설명" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" />
-                <input value={rwImg} onChange={e=>setRwImg(e.target.value)} placeholder="이미지 URL" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" />
+                <div>
+                  <div className="flex gap-2">
+                    <input value={rwImg} onChange={e=>setRwImg(e.target.value)} placeholder="이미지 URL 직접 입력 또는 우측에서 파일 선택" className="flex-grow px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" />
+                    <label className={`flex-shrink-0 px-4 py-2 border-2 border-dashed rounded-lg text-sm font-medium cursor-pointer transition ${rwUploading ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-wait' : 'border-teal-300 text-teal-600 hover:bg-teal-50'}`}>
+                      {rwUploading ? '업로드 중...' : '📁 파일 선택'}
+                      <input type="file" accept="image/*" onChange={handleRewardImageUpload} disabled={rwUploading} className="hidden" />
+                    </label>
+                  </div>
+                  {rwImg && (
+                    <div className="mt-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={rwImg}
+                        alt="미리보기"
+                        className="h-32 w-auto rounded-lg border border-gray-200 object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">최대 5MB · jpg/png/webp 등 이미지</p>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <input type="number" value={rwPts} onChange={e=>setRwPts(parseInt(e.target.value)||0)} placeholder="필요 포인트" className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" />
                   <input type="number" value={rwStock} onChange={e=>setRwStock(parseInt(e.target.value)||0)} placeholder="재고 수량" className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" />

@@ -54,6 +54,22 @@ export async function uploadPostImage(file: File, postType: 'notice' | 'resource
   return uploadFile(file, path)
 }
 
+/**
+ * 보상 상품 이미지를 Firebase Storage에 업로드.
+ */
+export async function uploadRewardImage(file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('이미지 파일만 업로드 가능합니다')
+  }
+  if (file.size > MAX_POSTER_BYTES) {
+    throw new Error('파일 크기는 5MB 이하여야 합니다')
+  }
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+  const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const path = `rewards/${filename}`
+  return uploadFile(file, path)
+}
+
 const MAX_RESOURCE_BYTES = 20 * 1024 * 1024 // 20MB
 
 /**
