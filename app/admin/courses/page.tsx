@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   getAllCourses, createCourse, updateCourse, deleteCourse,
   getCategories, createCategory, updateCategory, deleteCategory
@@ -25,6 +25,7 @@ export default function AdminCoursesPage() {
     category: '',
     isPublished: false,
   });
+  const formRef = useRef<HTMLDivElement | null>(null);
 
   // 기본 카테고리 (DB에 없을 때 폴백)
   const defaultCategories = [
@@ -88,26 +89,31 @@ export default function AdminCoursesPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!id) { alert('삭제 실패: 강좌 ID가 없습니다'); return; }
     if (!confirm('정말 삭제하시겠습니까?')) return;
     try {
       await deleteCourse(id);
       setCourses(prev => prev.filter(c => c.id !== id));
     } catch (error) {
-      alert('삭제 실패');
+      const msg = error instanceof Error ? error.message : '알 수 없는 오류';
+      console.error('강의 삭제 실패:', error);
+      alert(`삭제 실패: ${msg}`);
     }
   };
 
   const handleEdit = (course: Course) => {
+    if (!course.id) { alert('수정 실패: 강좌 ID가 없습니다'); return; }
     setFormData({
-      title: course.title,
-      description: course.description,
-      youtubeUrl: course.youtubeUrl,
-      thumbnailUrl: course.thumbnailUrl,
-      category: course.category,
-      isPublished: course.isPublished,
+      title: course.title || '',
+      description: course.description || '',
+      youtubeUrl: course.youtubeUrl || '',
+      thumbnailUrl: course.thumbnailUrl || '',
+      category: course.category || activeCats[0]?.slug || '',
+      isPublished: !!course.isPublished,
     });
     setEditingId(course.id);
     setShowForm(true);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   };
 
   const handleCancel = () => {
@@ -137,12 +143,16 @@ export default function AdminCoursesPage() {
   };
 
   const handleDeleteCat = async (id: string) => {
+    if (categories.length === 0) { alert('기본 카테고리는 삭제할 수 없습니다. 먼저 새 카테고리를 추가하세요.'); return; }
+    if (!id) { alert('삭제 실패: 카테고리 ID가 없습니다'); return; }
     if (!confirm('이 카테고리를 삭제하시겠습니까?')) return;
     try {
       await deleteCategory(id);
       setCategories(prev => prev.filter(c => c.id !== id));
     } catch (error) {
-      alert('삭제 실패');
+      const msg = error instanceof Error ? error.message : '알 수 없는 오류';
+      console.error('카테고리 삭제 실패:', error);
+      alert(`삭제 실패: ${msg}`);
     }
   };
 
@@ -275,7 +285,7 @@ export default function AdminCoursesPage() {
 
           {/* 강좌 추가/수정 폼 */}
           {showForm && (
-            <div className="bg-white rounded-lg shadow p-8 mb-8">
+            <div ref={formRef} className="bg-white rounded-lg shadow p-8 mb-8 scroll-mt-20">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 {editingId ? '강좌 수정' : '새 강좌 추가'}
               </h2>

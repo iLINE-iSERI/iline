@@ -38,7 +38,7 @@ export async function getCourses(): Promise<Course[]> {
   try {
     const q = query(collection(db, 'courses'), where('isPublished', '==', true))
     const snapshot = await getDocs(q)
-    const courses = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Course))
+    const courses = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Course))
     return courses.sort((a, b) => (a.order || 0) - (b.order || 0))
   } catch (error) { console.error('강의 목록 조회 에러:', error); return [] }
 }
@@ -46,13 +46,13 @@ export async function getAllCourses(): Promise<Course[]> {
   try {
     const q = query(collection(db, 'courses'), orderBy('order', 'asc'))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Course))
+    return snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Course))
   } catch (error) { console.error('전체 강의 목록 조회 에러:', error); return [] }
 }
 export async function getCourse(courseId: string): Promise<Course | null> {
   try {
     const docSnap = await getDoc(doc(db, 'courses', courseId))
-    return docSnap.exists() ? ({ id: docSnap.id, ...docSnap.data() } as Course) : null
+    return docSnap.exists() ? ({ ...docSnap.data(), id: docSnap.id } as Course) : null
   } catch (error) { console.error('강의 조회 에러:', error); throw error }
 }
 export async function createCourse(data: Omit<Course, 'id' | 'createdAt' | 'updatedAt'>) {
@@ -77,7 +77,7 @@ export async function getCategories(): Promise<Category[]> {
   try {
     const q = query(collection(db, 'categories'), orderBy('order', 'asc'))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Category))
+    return snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Category))
   } catch (error) { console.error('카테고리 조회 에러:', error); return [] }
 }
 export async function createCategory(data: Omit<Category, 'id' | 'createdAt'>) {
@@ -107,7 +107,7 @@ export async function getUserEnrollments(userId: string): Promise<Enrollment[]> 
   try {
     const q = query(collection(db, 'enrollments'), where('userId', '==', userId))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Enrollment))
+    return snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Enrollment))
   } catch (error) { console.error('수강 목록 조회 에러:', error); return [] }
 }
 
@@ -137,7 +137,7 @@ export async function getPosts(type: 'notice' | 'resource'): Promise<Post[]> {
   try {
     const q = query(collection(db, 'posts'), where('type', '==', type))
     const snapshot = await getDocs(q)
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Post))
+    const items = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Post))
     return items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
   } catch (error) { console.error('게시글 조회 에러:', error); return [] }
 }
@@ -152,7 +152,7 @@ export async function createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedA
 export async function getPost(id: string): Promise<Post | null> {
   try {
     const docSnap = await getDoc(doc(db, 'posts', id))
-    return docSnap.exists() ? ({ id: docSnap.id, ...docSnap.data() } as Post) : null
+    return docSnap.exists() ? ({ ...docSnap.data(), id: docSnap.id } as Post) : null
   } catch (error) { console.error('게시글 단건 조회 에러:', error); return null }
 }
 
@@ -166,7 +166,7 @@ export async function getGroups(): Promise<StudentGroup[]> {
   try {
     const q = query(collection(db, 'groups'), orderBy('order', 'asc'))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as StudentGroup))
+    return snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as StudentGroup))
   } catch (error) { console.error('그룹 조회 에러:', error); return [] }
 }
 export async function createGroup(data: Omit<StudentGroup, 'id' | 'createdAt'>) {
@@ -190,7 +190,7 @@ export async function getPointRules(): Promise<PointRule[]> {
   try {
     const q = query(collection(db, 'pointRules'), orderBy('createdAt', 'asc'))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as PointRule))
+    return snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as PointRule))
   } catch (error) { console.error('포인트 규칙 조회 에러:', error); return [] }
 }
 export async function createPointRule(data: Omit<PointRule, 'id' | 'createdAt'>) {
@@ -250,7 +250,7 @@ export async function getUserPointHistory(userId: string): Promise<PointHistory[
   try {
     const q = query(collection(db, 'pointHistory'), where('userId', '==', userId))
     const snapshot = await getDocs(q)
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as PointHistory))
+    const items = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as PointHistory))
     return items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
   } catch (error) { console.error('포인트 내역 조회 에러:', error); return [] }
 }
@@ -268,7 +268,7 @@ export async function getRewards(): Promise<Reward[]> {
   try {
     const q = query(collection(db, 'rewards'), orderBy('createdAt', 'desc'))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Reward))
+    return snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Reward))
   } catch (error) { console.error('보상 조회 에러:', error); return [] }
 }
 export async function createReward(data: Omit<Reward, 'id' | 'createdAt'>) {
@@ -325,7 +325,7 @@ export async function getAllClaims(): Promise<RewardClaim[]> {
   try {
     const q = query(collection(db, 'rewardClaims'), orderBy('createdAt', 'desc'))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as RewardClaim))
+    return snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as RewardClaim))
   } catch (error) { console.error('교환 내역 조회 에러:', error); return [] }
 }
 
@@ -334,7 +334,7 @@ export async function getUserClaims(userId: string): Promise<RewardClaim[]> {
   try {
     const q = query(collection(db, 'rewardClaims'), where('userId', '==', userId))
     const snapshot = await getDocs(q)
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as RewardClaim))
+    const items = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as RewardClaim))
     return items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
   } catch (error) { console.error('내 교환 내역 조회 에러:', error); return [] }
 }
@@ -375,7 +375,7 @@ export async function getQnAs(): Promise<QnA[]> {
   try {
     const q = query(collection(db, 'qna'), orderBy('createdAt', 'desc'))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as QnA))
+    return snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as QnA))
   } catch (error) {
     console.error('Q&A 목록 조회 에러:', error)
     return []
@@ -420,7 +420,7 @@ export async function getCourseComments(courseId: string): Promise<CourseComment
   try {
     const q = query(collection(db, 'courseComments'), where('courseId', '==', courseId))
     const snapshot = await getDocs(q)
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as CourseComment))
+    const items = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as CourseComment))
     return items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
   } catch (error) { console.error('강좌 댓글 조회 에러:', error); return [] }
 }
@@ -506,7 +506,7 @@ export async function getUserQuizAttempts(userId: string, courseId: string): Pro
       where('courseId', '==', courseId),
     )
     const snapshot = await getDocs(q)
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as QuizAttempt))
+    const items = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as QuizAttempt))
     return items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
   } catch (error) { console.error('퀴즈 응시 기록 조회 에러:', error); return [] }
 }
@@ -515,7 +515,7 @@ export async function getUserQuizAttempts(userId: string, courseId: string): Pro
 export async function getOfflineCourses(opts?: { onlyOpen?: boolean }): Promise<OfflineCourse[]> {
   try {
     const snapshot = await getDocs(collection(db, 'offlineCourses'))
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as OfflineCourse))
+    const items = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as OfflineCourse))
     const filtered = opts?.onlyOpen ? items.filter((c) => c.isOpen) : items
     return filtered.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
   } catch (error) { console.error('오프라인 강좌 조회 에러:', error); return [] }
@@ -524,7 +524,7 @@ export async function getOfflineCourses(opts?: { onlyOpen?: boolean }): Promise<
 export async function getOfflineCourse(id: string): Promise<OfflineCourse | null> {
   try {
     const docSnap = await getDoc(doc(db, 'offlineCourses', id))
-    return docSnap.exists() ? ({ id: docSnap.id, ...docSnap.data() } as OfflineCourse) : null
+    return docSnap.exists() ? ({ ...docSnap.data(), id: docSnap.id } as OfflineCourse) : null
   } catch (error) { console.error('오프라인 강좌 단건 조회 에러:', error); return null }
 }
 
@@ -565,7 +565,7 @@ export async function getUserOfflineApplications(userId: string): Promise<Offlin
   try {
     const q = query(collection(db, 'offlineApplications'), where('userId', '==', userId))
     const snapshot = await getDocs(q)
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as OfflineApplication))
+    const items = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as OfflineApplication))
     return items.sort((a, b) => (b.appliedAt?.toMillis?.() ?? 0) - (a.appliedAt?.toMillis?.() ?? 0))
   } catch (error) { console.error('내 오프라인 신청 조회 에러:', error); return [] }
 }
@@ -573,7 +573,7 @@ export async function getUserOfflineApplications(userId: string): Promise<Offlin
 export async function getMyApplicationForCourse(userId: string, courseId: string): Promise<OfflineApplication | null> {
   try {
     const docSnap = await getDoc(doc(db, 'offlineApplications', `${userId}_${courseId}`))
-    return docSnap.exists() ? ({ id: docSnap.id, ...docSnap.data() } as OfflineApplication) : null
+    return docSnap.exists() ? ({ ...docSnap.data(), id: docSnap.id } as OfflineApplication) : null
   } catch (error) { console.error('내 신청 조회 에러:', error); return null }
 }
 
@@ -581,7 +581,7 @@ export async function getCourseApplications(courseId: string): Promise<OfflineAp
   try {
     const q = query(collection(db, 'offlineApplications'), where('courseId', '==', courseId))
     const snapshot = await getDocs(q)
-    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as OfflineApplication))
+    const items = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as OfflineApplication))
     return items.sort((a, b) => (b.appliedAt?.toMillis?.() ?? 0) - (a.appliedAt?.toMillis?.() ?? 0))
   } catch (error) { console.error('강좌 신청자 조회 에러:', error); return [] }
 }
