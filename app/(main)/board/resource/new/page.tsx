@@ -49,15 +49,9 @@ function NewResourceContent() {
     if (!title.trim()) { alert('제목을 입력하세요'); return; }
     if (!content.trim()) { alert('내용을 입력하세요'); return; }
 
-    if (mode === 'file' && !attachmentUrl) {
-      alert('파일을 업로드하세요'); return;
-    }
-    if (mode === 'link') {
-      const url = linkUrl.trim();
-      if (!url) { alert('링크를 입력하세요'); return; }
-      if (!/^https?:\/\//i.test(url)) {
-        alert('링크는 http:// 또는 https:// 로 시작해야 합니다'); return;
-      }
+    const trimmedLink = linkUrl.trim();
+    if (mode === 'link' && trimmedLink && !/^https?:\/\//i.test(trimmedLink)) {
+      alert('링크는 http:// 또는 https:// 로 시작해야 합니다'); return;
     }
 
     setSaving(true);
@@ -67,9 +61,9 @@ function NewResourceContent() {
         title: title.trim(),
         content: content.trim(),
         authorId: user.uid,
-        attachmentUrl: mode === 'file' ? attachmentUrl : undefined,
-        attachmentName: mode === 'file' ? attachmentName : undefined,
-        linkUrl: mode === 'link' ? linkUrl.trim() : undefined,
+        attachmentUrl: mode === 'file' && attachmentUrl ? attachmentUrl : undefined,
+        attachmentName: mode === 'file' && attachmentName ? attachmentName : undefined,
+        linkUrl: mode === 'link' && trimmedLink ? trimmedLink : undefined,
       });
       router.push('/board/resource');
     } catch {
@@ -119,7 +113,7 @@ function NewResourceContent() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-2">첨부 방식 *</label>
+          <label className="block text-sm font-medium text-gray-600 mb-2">첨부 (선택)</label>
           <div className="flex gap-2 mb-3">
             <button
               type="button"
