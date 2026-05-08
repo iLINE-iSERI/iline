@@ -60,6 +60,8 @@ export interface Post {
   content: string
   authorId: string
   attachmentUrl?: string
+  attachmentName?: string
+  linkUrl?: string
   createdAt: Timestamp
   updatedAt: Timestamp
   [key: string]: any

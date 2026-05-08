@@ -22,6 +22,10 @@ service firebase.storage {
       return request.resource.size < 5 * 1024 * 1024;
     }
 
+    function isUnder20MB() {
+      return request.resource.size < 20 * 1024 * 1024;
+    }
+
     // ===== 오프라인 강좌 포스터 =====
     // 누구나 (로그인 사용자) 읽기, 관리자만 업로드/삭제, 5MB 이미지만
     match /posters/offline-courses/{allPaths=**} {
@@ -30,7 +34,21 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
-    // ===== 게시판(공지/자료실) 첨부 이미지 =====
+    // ===== 자료실 첨부 파일 (PDF, PPT, 한글 등 모든 형식 허용) =====
+    match /posts/resource/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isUnder20MB();
+      allow delete: if isAdmin();
+    }
+
+    // ===== 공지사항 첨부 이미지 =====
+    match /posts/notice/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isImage() && isUnder5MB();
+      allow delete: if isAdmin();
+    }
+
+    // 그 외 posts 경로 (호환성 — 기존 데이터)
     match /posts/{allPaths=**} {
       allow read: if isSignedIn();
       allow write: if isAdmin() && isImage() && isUnder5MB();

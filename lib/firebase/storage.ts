@@ -53,3 +53,20 @@ export async function uploadPostImage(file: File, postType: 'notice' | 'resource
   const path = `posts/${postType}/${filename}`
   return uploadFile(file, path)
 }
+
+const MAX_RESOURCE_BYTES = 20 * 1024 * 1024 // 20MB
+
+/**
+ * 자료실에 첨부할 일반 파일(PDF, PPT, 한글 등) 업로드.
+ * 원본 파일명도 함께 반환하여 다운로드 시 표시할 수 있게 한다.
+ */
+export async function uploadResourceFile(file: File): Promise<{ url: string; name: string }> {
+  if (file.size > MAX_RESOURCE_BYTES) {
+    throw new Error('파일 크기는 20MB 이하여야 합니다')
+  }
+  const ext = (file.name.split('.').pop() || 'bin').toLowerCase()
+  const stored = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const path = `posts/resource/${stored}`
+  const url = await uploadFile(file, path)
+  return { url, name: file.name }
+}
