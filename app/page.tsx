@@ -1,10 +1,10 @@
 // 홈 페이지 (랜딩)
-import Link from 'next/link'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { HeroButtons, CtaButton } from '@/components/home/ActionButton'
 import OpenOfflineCoursesPreview from '@/components/home/OpenOfflineCoursesPreview'
 import HomeHeroGreat from '@/components/home/HomeHeroGreat'
+import HomeCategories from '@/components/home/HomeCategories'
 
 export default function HomePage() {
   return (
@@ -114,26 +114,7 @@ export default function HomePage() {
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">학습 카테고리</h2>
               <p className="text-gray-500 text-lg">관심 분야를 선택하고 학습을 시작하세요</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Link href="/courses" className="card-hover group relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-500 to-teal-700 p-8 text-white min-h-[200px] flex flex-col justify-end">
-                <div className="absolute top-4 right-4 text-4xl opacity-30">🤖</div>
-                <div className="text-sm font-medium text-teal-200 mb-2">AI BASICS</div>
-                <h3 className="text-2xl font-bold mb-2">AI 기초</h3>
-                <p className="text-teal-200 text-sm">인공지능의 기본 개념과 원리를 배워보세요</p>
-              </Link>
-              <Link href="/courses" className="card-hover group relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-500 to-blue-700 p-8 text-white min-h-[200px] flex flex-col justify-end">
-                <div className="absolute top-4 right-4 text-4xl opacity-30">💡</div>
-                <div className="text-sm font-medium text-blue-200 mb-2">AI ETHICS</div>
-                <h3 className="text-2xl font-bold mb-2">AI 윤리</h3>
-                <p className="text-blue-200 text-sm">인공지능과 윤리적 사고를 함께 키워보세요</p>
-              </Link>
-              <Link href="/courses" className="card-hover group relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-500 to-cyan-700 p-8 text-white min-h-[200px] flex flex-col justify-end">
-                <div className="absolute top-4 right-4 text-4xl opacity-30">💻</div>
-                <div className="text-sm font-medium text-cyan-200 mb-2">CODING</div>
-                <h3 className="text-2xl font-bold mb-2">코딩</h3>
-                <p className="text-cyan-200 text-sm">프로그래밍의 기초부터 실습까지 도전하세요</p>
-              </Link>
-            </div>
+            <HomeCategories />
 
             <OpenOfflineCoursesPreview />
           </div>

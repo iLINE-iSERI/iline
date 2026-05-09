@@ -102,11 +102,19 @@ export interface QnA {
   [key: string]: any
 }
 
+export type CategoryColor = 'teal' | 'blue' | 'cyan' | 'purple' | 'pink' | 'orange' | 'green' | 'red'
+
 export interface Category {
   id: string
   name: string
   slug: string
   order: number
+  // 메인 화면 학습 카테고리 카드 표시 정보
+  emoji?: string
+  englishLabel?: string
+  description?: string
+  colorTheme?: CategoryColor
+  showOnHome?: boolean
   [key: string]: any
 }
 export interface StudentGroup {

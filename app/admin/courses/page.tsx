@@ -5,7 +5,18 @@ import {
   getAllCourses, createCourse, updateCourse, deleteCourse,
   getCategories, createCategory, updateCategory, deleteCategory
 } from '@/lib/firebase/firestore';
-import type { Course, Category } from '@/lib/types';
+import type { Course, Category, CategoryColor } from '@/lib/types';
+
+const COLOR_OPTIONS: { value: CategoryColor; label: string; preview: string }[] = [
+  { value: 'teal',   label: '청록', preview: 'from-teal-500 to-teal-700' },
+  { value: 'blue',   label: '파랑', preview: 'from-blue-500 to-blue-700' },
+  { value: 'cyan',   label: '하늘', preview: 'from-cyan-500 to-cyan-700' },
+  { value: 'purple', label: '보라', preview: 'from-purple-500 to-purple-700' },
+  { value: 'pink',   label: '분홍', preview: 'from-pink-500 to-pink-700' },
+  { value: 'orange', label: '주황', preview: 'from-orange-500 to-orange-700' },
+  { value: 'green',  label: '초록', preview: 'from-green-500 to-green-700' },
+  { value: 'red',    label: '빨강', preview: 'from-red-500 to-red-700' },
+];
 
 export default function AdminCoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -16,6 +27,11 @@ export default function AdminCoursesPage() {
   const [activeTab, setActiveTab] = useState<'courses' | 'categories'>('courses');
   const [catName, setCatName] = useState('');
   const [catSlug, setCatSlug] = useState('');
+  const [catEmoji, setCatEmoji] = useState('');
+  const [catEnglishLabel, setCatEnglishLabel] = useState('');
+  const [catDesc, setCatDesc] = useState('');
+  const [catColor, setCatColor] = useState<CategoryColor>('teal');
+  const [catShowOnHome, setCatShowOnHome] = useState(true);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -124,13 +140,27 @@ export default function AdminCoursesPage() {
   };
 
   // === 카테고리 핸들러 ===
+  const resetCatForm = () => {
+    setEditingCatId(null);
+    setCatName(''); setCatSlug(''); setCatEmoji(''); setCatEnglishLabel('');
+    setCatDesc(''); setCatColor('teal'); setCatShowOnHome(true);
+  };
+
+  const defaultCatExtras: Record<string, { emoji: string; englishLabel: string; description: string; colorTheme: CategoryColor }> = {
+    'ai-basic':  { emoji: '🤖', englishLabel: 'AI BASICS', description: '인공지능의 기본 개념과 원리를 배워보세요',  colorTheme: 'teal' },
+    'ai-ethics': { emoji: '💡', englishLabel: 'AI ETHICS', description: '인공지능과 윤리적 사고를 함께 키워보세요',    colorTheme: 'blue' },
+    'coding':    { emoji: '💻', englishLabel: 'CODING',    description: '프로그래밍의 기초부터 실습까지 도전하세요',    colorTheme: 'cyan' },
+  };
+
   const handleSeedDefaultCats = async () => {
     if (!confirm('기본 카테고리(AI 기초 / AI 윤리 / 코딩)를 DB에 생성하시겠습니까?')) return;
     try {
       const created: Category[] = [];
       for (const dc of defaultCategories) {
-        const newId = await createCategory({ name: dc.name, slug: dc.slug, order: dc.order });
-        created.push({ id: newId, name: dc.name, slug: dc.slug, order: dc.order } as Category);
+        const extras = defaultCatExtras[dc.slug];
+        const payload = { name: dc.name, slug: dc.slug, order: dc.order, ...(extras || {}), showOnHome: true };
+        const newId = await createCategory(payload);
+        created.push({ id: newId, ...payload } as Category);
       }
       setCategories(created);
       alert('기본 카테고리가 생성되었습니다');
@@ -147,17 +177,22 @@ export default function AdminCoursesPage() {
     }
     if (!catName.trim()) { alert('카테고리명을 입력하세요'); return; }
     const slug = catSlug.trim() || catName.trim().toLowerCase().replace(/\s+/g, '-');
+    const extras = {
+      emoji: catEmoji.trim() || undefined,
+      englishLabel: catEnglishLabel.trim() || undefined,
+      description: catDesc.trim() || undefined,
+      colorTheme: catColor,
+      showOnHome: catShowOnHome,
+    };
     try {
       if (editingCatId) {
-        await updateCategory(editingCatId, { name: catName, slug });
-        setCategories(prev => prev.map(c => c.id === editingCatId ? { ...c, name: catName, slug } : c));
-        setEditingCatId(null);
+        await updateCategory(editingCatId, { name: catName, slug, ...extras });
+        setCategories(prev => prev.map(c => c.id === editingCatId ? { ...c, name: catName, slug, ...extras } : c));
       } else {
-        const newId = await createCategory({ name: catName, slug, order: categories.length });
-        setCategories(prev => [...prev, { id: newId, name: catName, slug, order: categories.length } as Category]);
+        const newId = await createCategory({ name: catName, slug, order: categories.length, ...extras });
+        setCategories(prev => [...prev, { id: newId, name: catName, slug, order: categories.length, ...extras } as Category]);
       }
-      setCatName('');
-      setCatSlug('');
+      resetCatForm();
     } catch (error) {
       const msg = error instanceof Error ? error.message : '알 수 없는 오류';
       console.error('카테고리 저장 실패:', error);
@@ -182,6 +217,11 @@ export default function AdminCoursesPage() {
   const handleEditCat = (cat: Category) => {
     setCatName(cat.name);
     setCatSlug(cat.slug);
+    setCatEmoji(cat.emoji || '');
+    setCatEnglishLabel(cat.englishLabel || '');
+    setCatDesc(cat.description || '');
+    setCatColor((cat.colorTheme as CategoryColor) || 'teal');
+    setCatShowOnHome(cat.showOnHome !== false);
     setEditingCatId(cat.id);
   };
 
@@ -243,38 +283,109 @@ export default function AdminCoursesPage() {
           )}
 
           {/* 카테고리 추가/수정 폼 */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="bg-white rounded-lg shadow p-6 mb-6 space-y-4">
+            <h3 className="font-semibold text-gray-900">{editingCatId ? '카테고리 수정' : '새 카테고리 추가'}</h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">이름 *</label>
+                <input
+                  type="text"
+                  value={catName}
+                  onChange={e => setCatName(e.target.value)}
+                  placeholder="예: AI 기초"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">슬러그 (URL용 영문)</label>
+                <input
+                  type="text"
+                  value={catSlug}
+                  onChange={e => setCatSlug(e.target.value)}
+                  placeholder="ai-basic (비워두면 자동 생성)"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">이모지 (메인 카드 우상단)</label>
+                <input
+                  type="text"
+                  value={catEmoji}
+                  onChange={e => setCatEmoji(e.target.value)}
+                  placeholder="🤖"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">영문 라벨 (메인 카드 상단 작은 글자)</label>
+                <input
+                  type="text"
+                  value={catEnglishLabel}
+                  onChange={e => setCatEnglishLabel(e.target.value)}
+                  placeholder="AI BASICS"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">설명 (메인 카드 하단 한 줄)</label>
               <input
                 type="text"
-                value={catName}
-                onChange={e => setCatName(e.target.value)}
-                placeholder="카테고리 이름 (예: AI 기초)"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+                value={catDesc}
+                onChange={e => setCatDesc(e.target.value)}
+                placeholder="인공지능의 기본 개념과 원리를 배워보세요"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-2">색상 테마</label>
+              <div className="flex flex-wrap gap-2">
+                {COLOR_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setCatColor(opt.value)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 transition ${
+                      catColor === opt.value ? 'border-gray-900' : 'border-transparent hover:border-gray-200'
+                    }`}
+                  >
+                    <span className={`w-6 h-6 rounded bg-gradient-to-br ${opt.preview}`} />
+                    <span className="text-sm">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
               <input
-                type="text"
-                value={catSlug}
-                onChange={e => setCatSlug(e.target.value)}
-                placeholder="슬러그 (예: ai-basic)"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+                id="showOnHome"
+                type="checkbox"
+                checked={catShowOnHome}
+                onChange={e => setCatShowOnHome(e.target.checked)}
+                className="w-4 h-4"
               />
+              <label htmlFor="showOnHome" className="text-sm text-gray-700">메인 화면 학습 카테고리에 노출</label>
+            </div>
+
+            <div className="flex gap-2 pt-2">
               <button
                 onClick={handleAddCat}
-                className="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-6 rounded-lg transition whitespace-nowrap"
+                className="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-6 rounded-lg transition"
               >
                 {editingCatId ? '수정' : '추가'}
               </button>
               {editingCatId && (
                 <button
-                  onClick={() => { setEditingCatId(null); setCatName(''); setCatSlug(''); }}
+                  onClick={resetCatForm}
                   className="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition"
                 >
                   취소
                 </button>
               )}
             </div>
-            <p className="text-xs text-gray-400 mt-2">슬러그는 영문 소문자로 입력하세요. 비워두면 자동 생성됩니다.</p>
           </div>
 
           {/* 카테고리 목록 */}
@@ -282,26 +393,44 @@ export default function AdminCoursesPage() {
             <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">이름</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">슬러그</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">순서</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">작업</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">메인 카드 미리보기</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">이름</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">슬러그</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">메인 노출</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">작업</th>
                 </tr>
               </thead>
               <tbody>
-                {activeCats.map((cat, idx) => (
-                  <tr key={cat.id} className="border-b hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium">{cat.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{cat.slug}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{idx + 1}</td>
-                    <td className="px-6 py-4 flex gap-2">
-                      <button onClick={() => handleEditCat(cat as Category)} className="text-blue-600 hover:text-blue-700 font-semibold text-sm">수정</button>
-                      <button onClick={() => handleDeleteCat(cat.id)} className="text-red-600 hover:text-red-700 font-semibold text-sm">삭제</button>
-                    </td>
-                  </tr>
-                ))}
+                {activeCats.map((cat) => {
+                  const c = cat as Category;
+                  const colorPreview = COLOR_OPTIONS.find(o => o.value === c.colorTheme)?.preview || 'from-gray-400 to-gray-600';
+                  return (
+                    <tr key={c.id} className="border-b hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-br ${colorPreview} text-white text-xs`}>
+                          {c.emoji && <span>{c.emoji}</span>}
+                          <span className="font-medium">{c.englishLabel || c.slug.toUpperCase()}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-medium">{c.name}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500">{c.slug}</td>
+                      <td className="px-4 py-3 text-sm">
+                        {c.showOnHome === false
+                          ? <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500">숨김</span>
+                          : <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">노출</span>
+                        }
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <button onClick={() => handleEditCat(c)} className="text-blue-600 hover:text-blue-700 font-semibold text-sm">수정</button>
+                          <button onClick={() => handleDeleteCat(c.id)} className="text-red-600 hover:text-red-700 font-semibold text-sm">삭제</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {activeCats.length === 0 && (
-                  <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-400">카테고리가 없습니다</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-400">카테고리가 없습니다</td></tr>
                 )}
               </tbody>
             </table>

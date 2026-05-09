@@ -33,8 +33,9 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+    // 메인 화면(비로그인 방문자) 노출 위해 read 공개
     match /categories/{id} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
     match /studentGroups/{id} {
