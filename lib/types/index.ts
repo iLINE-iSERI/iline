@@ -216,6 +216,7 @@ export interface Reward {
   requiredPoints: number
   stock: number
   isActive: boolean
+  expiresAt?: string  // YYYY-MM-DD, 해당 날짜의 23:59:59까지 유효
   createdAt: Timestamp
   [key: string]: any
 }

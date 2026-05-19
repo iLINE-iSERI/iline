@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import AuthGuard from '@/components/auth/AuthGuard';
-import { getRewards, claimReward, getUserClaims, getUserProfile } from '@/lib/firebase/firestore';
+import { getRewards, claimReward, getUserClaims, getUserProfile, isRewardExpired } from '@/lib/firebase/firestore';
 import type { Reward, RewardClaim } from '@/lib/types';
 
 function ShopContent() {
@@ -22,7 +22,7 @@ function ShopContent() {
           getRewards(),
           user?.uid ? getUserClaims(user.uid) : Promise.resolve([]),
         ]);
-        setRewards(rw.filter(r => r.isActive && r.stock > 0));
+        setRewards(rw.filter(r => r.isActive && r.stock > 0 && !isRewardExpired(r)));
         setClaims(cl);
         setMyPoints(userProfile?.totalPoints || 0);
       } catch (e) { console.error(e); }
@@ -87,10 +87,15 @@ function ShopContent() {
                 <div className="p-5">
                   <h3 className="font-bold text-gray-900 text-lg mb-1">{rw.name}</h3>
                   <p className="text-sm text-gray-500 mb-4 line-clamp-2">{rw.description}</p>
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-teal-600 text-lg">{rw.requiredPoints.toLocaleString()} 그뤠잇</span>
                     <span className="text-xs text-gray-400">남은 수량: {rw.stock}</span>
                   </div>
+                  {rw.expiresAt && (
+                    <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-md px-2 py-1 mb-3 inline-block">
+                      ⏳ {rw.expiresAt} 까지 교환 가능
+                    </div>
+                  )}
                   <button
                     onClick={() => handleClaim(rw)}
                     disabled={!canAfford || claiming === rw.id}

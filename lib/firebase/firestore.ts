@@ -210,6 +210,7 @@ export async function deletePointRule(ruleId: string) {
 }
 
 // ===== 그뤠잇 포인트 부여 =====
+// 정책: role === 'student' 사용자에게만 지급. teacher/admin/미존재 유저는 silently skip.
 export async function awardPoints(
   userId: string,
   action: string,
@@ -217,6 +218,10 @@ export async function awardPoints(
   opts?: { dedupKey?: string }
 ) {
   try {
+    const userSnap = await getDoc(doc(db, 'users', userId))
+    if (!userSnap.exists()) return 0
+    if ((userSnap.data().role as string | undefined) !== 'student') return 0
+
     const rules = await getPointRules()
     const rule = rules.find(r => r.action === action && r.isActive)
     if (!rule) return 0
@@ -287,9 +292,32 @@ export async function deleteReward(rewardId: string) {
   catch (error) { console.error('보상 삭제 에러:', error); throw error }
 }
 
+// 만료일이 비어있는 보상에 일괄로 expiresAt(YYYY-MM-DD) 적용
+export async function setExpiryForUnsetRewards(expiresAt: string): Promise<number> {
+  try {
+    const snapshot = await getDocs(collection(db, 'rewards'))
+    const targets = snapshot.docs.filter((d) => !(d.data() as Reward).expiresAt)
+    await Promise.all(
+      targets.map((d) => updateDoc(doc(db, 'rewards', d.id), { expiresAt }))
+    )
+    return targets.length
+  } catch (error) { console.error('보상 일괄 만료일 적용 에러:', error); throw error }
+}
+
+// 보상이 만료됐는지 판정 (YYYY-MM-DD 의 23:59:59 까지 유효)
+export function isRewardExpired(reward: { expiresAt?: string }): boolean {
+  if (!reward.expiresAt) return false
+  const today = new Date().toISOString().split('T')[0]
+  return reward.expiresAt < today
+}
+
 // 보상 교환 신청
 export async function claimReward(userId: string, userName: string, reward: Reward): Promise<boolean> {
   try {
+    if (isRewardExpired(reward)) {
+      alert('교환 기간이 종료된 상품입니다')
+      return false
+    }
     const userDoc = await getDoc(doc(db, 'users', userId))
     const userData = userDoc.data() as UserProfile
     if ((userData.totalPoints || 0) < reward.requiredPoints) {
@@ -463,6 +491,13 @@ export async function claimHiddenGreat(userId: string): Promise<{ success: boole
   const userRef = doc(db, 'users', userId)
   try {
     return await runTransaction(db, async (tx) => {
+      // 학생에게만 지급
+      const userSnap = await tx.get(userRef)
+      if (!userSnap.exists()) return { success: false, remaining: 0 }
+      if ((userSnap.data().role as string | undefined) !== 'student') {
+        return { success: false, remaining: 0 }
+      }
+
       const counterSnap = await tx.get(counterRef)
       const current = counterSnap.exists() ? ((counterSnap.data().count as number) ?? 0) : 0
       if (current >= HIDDEN_DAILY_MAX) {

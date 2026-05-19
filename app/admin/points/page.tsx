@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   getPointRules, createPointRule, updatePointRule, deletePointRule,
   getRewards, createReward, updateReward, deleteReward,
-  getAllClaims, updateClaimStatus,
+  getAllClaims, updateClaimStatus, setExpiryForUnsetRewards, isRewardExpired,
 } from '@/lib/firebase/firestore';
 import { uploadRewardImage } from '@/lib/firebase/storage';
 import type { PointRule, Reward, RewardClaim } from '@/lib/types';
@@ -28,8 +28,10 @@ export default function AdminPointsPage() {
   // 보상 폼
   const [rwName, setRwName] = useState(''); const [rwDesc, setRwDesc] = useState('');
   const [rwImg, setRwImg] = useState(''); const [rwPts, setRwPts] = useState(100); const [rwStock, setRwStock] = useState(10);
+  const [rwExpiresAt, setRwExpiresAt] = useState('');
   const [editRewardId, setEditRewardId] = useState<string | null>(null); const [showRewardForm, setShowRewardForm] = useState(false);
   const [rwUploading, setRwUploading] = useState(false);
+  const [bulkExpiry, setBulkExpiry] = useState('2026-08-31');
 
   useEffect(() => {
     const load = async () => {
@@ -82,16 +84,35 @@ export default function AdminPointsPage() {
   // === 보상 핸들러 ===
   const handleSaveReward = async () => {
     if (!rwName.trim()) { alert('상품명을 입력하세요'); return; }
+    const expiresAt = rwExpiresAt.trim() || undefined;
+    if (expiresAt && !/^\d{4}-\d{2}-\d{2}$/.test(expiresAt)) {
+      alert('만료일은 YYYY-MM-DD 형식이어야 합니다'); return;
+    }
     try {
       if (editRewardId) {
-        await updateReward(editRewardId, { name: rwName, description: rwDesc, imageUrl: rwImg, requiredPoints: rwPts, stock: rwStock });
-        setRewards(prev => prev.map(r => r.id === editRewardId ? { ...r, name: rwName, description: rwDesc, imageUrl: rwImg, requiredPoints: rwPts, stock: rwStock } : r));
+        await updateReward(editRewardId, { name: rwName, description: rwDesc, imageUrl: rwImg, requiredPoints: rwPts, stock: rwStock, expiresAt });
+        setRewards(prev => prev.map(r => r.id === editRewardId ? { ...r, name: rwName, description: rwDesc, imageUrl: rwImg, requiredPoints: rwPts, stock: rwStock, expiresAt } : r));
       } else {
-        const id = await createReward({ name: rwName, description: rwDesc, imageUrl: rwImg, requiredPoints: rwPts, stock: rwStock, isActive: true });
-        setRewards(prev => [...prev, { id, name: rwName, description: rwDesc, imageUrl: rwImg, requiredPoints: rwPts, stock: rwStock, isActive: true } as Reward]);
+        const id = await createReward({ name: rwName, description: rwDesc, imageUrl: rwImg, requiredPoints: rwPts, stock: rwStock, isActive: true, expiresAt });
+        setRewards(prev => [...prev, { id, name: rwName, description: rwDesc, imageUrl: rwImg, requiredPoints: rwPts, stock: rwStock, isActive: true, expiresAt } as Reward]);
       }
-      setRwName(''); setRwDesc(''); setRwImg(''); setRwPts(100); setRwStock(10); setEditRewardId(null); setShowRewardForm(false);
-    } catch (e) { alert('저장 실패'); }
+      setRwName(''); setRwDesc(''); setRwImg(''); setRwPts(100); setRwStock(10); setRwExpiresAt(''); setEditRewardId(null); setShowRewardForm(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '알 수 없는 오류';
+      alert(`저장 실패: ${msg}`);
+    }
+  };
+  const handleBulkExpiry = async () => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(bulkExpiry)) { alert('YYYY-MM-DD 형식으로 입력하세요'); return; }
+    if (!confirm(`만료일이 비어있는 모든 보상에 "${bulkExpiry}"를 적용할까요?`)) return;
+    try {
+      const count = await setExpiryForUnsetRewards(bulkExpiry);
+      setRewards(prev => prev.map(r => r.expiresAt ? r : { ...r, expiresAt: bulkExpiry }));
+      alert(`${count}개의 보상에 만료일이 적용되었습니다`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '알 수 없는 오류';
+      alert(`적용 실패: ${msg}`);
+    }
   };
   const handleToggleReward = async (reward: Reward) => {
     await updateReward(reward.id, { isActive: !reward.isActive });
@@ -103,6 +124,7 @@ export default function AdminPointsPage() {
   };
   const handleEditReward = (r: Reward) => {
     setRwName(r.name); setRwDesc(r.description); setRwImg(r.imageUrl || ''); setRwPts(r.requiredPoints); setRwStock(r.stock);
+    setRwExpiresAt(r.expiresAt || '');
     setEditRewardId(r.id); setShowRewardForm(true);
   };
   const handleRewardImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,9 +218,29 @@ export default function AdminPointsPage() {
       {/* === 보상 상품 탭 === */}
       {tab === 'rewards' && (
         <div>
+          {/* 일괄 만료일 적용 박스 */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex-grow">
+              <p className="font-semibold text-amber-900 text-sm">만료일이 비어있는 보상에 일괄 적용</p>
+              <p className="text-xs text-amber-700 mt-1">이미 만료일이 설정된 보상은 건드리지 않습니다.</p>
+            </div>
+            <input
+              type="date"
+              value={bulkExpiry}
+              onChange={e => setBulkExpiry(e.target.value)}
+              className="px-3 py-1.5 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white"
+            />
+            <button
+              onClick={handleBulkExpiry}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold py-1.5 px-4 rounded-lg text-sm whitespace-nowrap"
+            >
+              일괄 적용
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             {rewards.map(rw => (
-              <div key={rw.id} className={`bg-white rounded-xl shadow-sm border p-5 ${rw.isActive ? 'border-teal-200' : 'border-gray-200 opacity-60'}`}>
+              <div key={rw.id} className={`bg-white rounded-xl shadow-sm border p-5 ${rw.isActive ? 'border-teal-200' : 'border-gray-200 opacity-60'} ${isRewardExpired(rw) ? 'ring-1 ring-red-300' : ''}`}>
                 {rw.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -221,9 +263,20 @@ export default function AdminPointsPage() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-1">{rw.name}</h3>
                 <p className="text-sm text-gray-500 mb-3 line-clamp-2">{rw.description}</p>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-2">
                   <span className="font-bold text-teal-600">{rw.requiredPoints} 그뤠잇</span>
                   <span className="text-sm text-gray-400">재고: {rw.stock}개</span>
+                </div>
+                <div className="text-xs mb-3">
+                  {rw.expiresAt ? (
+                    isRewardExpired(rw) ? (
+                      <span className="text-red-600 font-semibold">만료됨 ({rw.expiresAt})</span>
+                    ) : (
+                      <span className="text-gray-500">~ {rw.expiresAt} 까지</span>
+                    )
+                  ) : (
+                    <span className="text-gray-400">만료일 없음</span>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleToggleReward(rw)} className={`text-xs px-3 py-1 rounded-full font-medium ${rw.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
@@ -268,10 +321,20 @@ export default function AdminPointsPage() {
                   <input type="number" value={rwPts} onChange={e=>setRwPts(parseInt(e.target.value)||0)} placeholder="필요 포인트" className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" />
                   <input type="number" value={rwStock} onChange={e=>setRwStock(parseInt(e.target.value)||0)} placeholder="재고 수량" className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" />
                 </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">교환 가능 기간 (선택)</label>
+                  <input
+                    type="date"
+                    value={rwExpiresAt}
+                    onChange={e => setRwExpiresAt(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">비워두면 만료일 없음. 설정한 날짜의 23:59까지 교환 가능.</p>
+                </div>
               </div>
               <div className="flex gap-2">
                 <button onClick={handleSaveReward} className="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-6 rounded-lg">{editRewardId ? '수정' : '추가'}</button>
-                <button onClick={() => { setShowRewardForm(false); setEditRewardId(null); setRwName(''); setRwDesc(''); setRwImg(''); setRwPts(100); setRwStock(10); }} className="bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg">취소</button>
+                <button onClick={() => { setShowRewardForm(false); setEditRewardId(null); setRwName(''); setRwDesc(''); setRwImg(''); setRwPts(100); setRwStock(10); setRwExpiresAt(''); }} className="bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg">취소</button>
               </div>
             </div>
           )}
