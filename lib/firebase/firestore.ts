@@ -210,7 +210,8 @@ export async function deletePointRule(ruleId: string) {
 }
 
 // ===== 그뤠잇 포인트 부여 =====
-// 정책: role === 'student' 사용자에게만 지급. teacher/admin/미존재 유저는 silently skip.
+// 정책: 회원가입 시 category === 'youth' (청소년) 으로 등록한 사용자에게만 지급.
+// adult/미설정/미존재 유저는 silently skip.
 export async function awardPoints(
   userId: string,
   action: string,
@@ -220,7 +221,7 @@ export async function awardPoints(
   try {
     const userSnap = await getDoc(doc(db, 'users', userId))
     if (!userSnap.exists()) return 0
-    if ((userSnap.data().role as string | undefined) !== 'student') return 0
+    if ((userSnap.data().category as string | undefined) !== 'youth') return 0
 
     const rules = await getPointRules()
     const rule = rules.find(r => r.action === action && r.isActive)
@@ -491,10 +492,10 @@ export async function claimHiddenGreat(userId: string): Promise<{ success: boole
   const userRef = doc(db, 'users', userId)
   try {
     return await runTransaction(db, async (tx) => {
-      // 학생에게만 지급
+      // 청소년(category === 'youth') 에게만 지급
       const userSnap = await tx.get(userRef)
       if (!userSnap.exists()) return { success: false, remaining: 0 }
-      if ((userSnap.data().role as string | undefined) !== 'student') {
+      if ((userSnap.data().category as string | undefined) !== 'youth') {
         return { success: false, remaining: 0 }
       }
 
