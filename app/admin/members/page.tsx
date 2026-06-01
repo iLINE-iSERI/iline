@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getAllUsers, getUserEnrollments, getCourse, getUserAllProgress, getUserPointHistory } from '@/lib/firebase/firestore';
-import type { UserProfile, Course, Progress, PointHistory } from '@/lib/types';
+import { useEffect, useMemo, useState } from 'react';
+import { getAllUsers, getUserEnrollments, getCourse, getUserAllProgress, getUserPointHistory, getGroups } from '@/lib/firebase/firestore';
+import type { UserProfile, Course, Progress, PointHistory, StudentGroup } from '@/lib/types';
 
 interface MemberDetail {
   user: UserProfile;
@@ -10,23 +10,40 @@ interface MemberDetail {
   pointHistory: PointHistory[];
 }
 
+const NO_GROUP = '__no_group__';
+
 export default function AdminMembersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [groups, setGroups] = useState<StudentGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<MemberDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [groupFilter, setGroupFilter] = useState<string>(''); // '' = 전체
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await getAllUsers();
+        const [data, gs] = await Promise.all([getAllUsers(), getGroups()]);
         setUsers(data);
+        setGroups(gs);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };
     load();
   }, []);
+
+  // 회원 분포 — 그룹별 카운트
+  const groupCounts = useMemo(() => {
+    const counts: Record<string, number> = { '': users.length, [NO_GROUP]: 0 };
+    groups.forEach(g => { counts[g.name] = 0; });
+    users.forEach(u => {
+      const g = (u.group || '').trim();
+      if (!g) { counts[NO_GROUP] = (counts[NO_GROUP] || 0) + 1; return; }
+      counts[g] = (counts[g] || 0) + 1;
+    });
+    return counts;
+  }, [users, groups]);
 
   const handleSelectUser = async (user: UserProfile) => {
     setDetailLoading(true);
@@ -48,9 +65,18 @@ export default function AdminMembersPage() {
     finally { setDetailLoading(false); }
   };
 
-  const filteredUsers = search.trim()
-    ? users.filter(u => u.name?.includes(search) || u.email?.includes(search))
-    : users;
+  const filteredUsers = users.filter(u => {
+    // 그룹 필터
+    if (groupFilter === NO_GROUP) {
+      if ((u.group || '').trim()) return false;
+    } else if (groupFilter) {
+      if ((u.group || '').trim() !== groupFilter) return false;
+    }
+    // 검색
+    const q = search.trim();
+    if (q && !(u.name?.includes(q) || u.email?.includes(q))) return false;
+    return true;
+  });
 
   const roleLabel: Record<string, string> = { student: '학생', teacher: '강사', admin: '관리자' };
   const groupLabel = (g: string) => g || '-';
@@ -62,7 +88,32 @@ export default function AdminMembersPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-2">회원 관리</h1>
-      <p className="text-gray-500 mb-6">총 {users.length}명의 회원</p>
+      <p className="text-gray-500 mb-6">총 {users.length}명의 회원 · 필터 적용 {filteredUsers.length}명</p>
+
+      {/* 그룹 필터 칩 */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {[
+          { key: '', label: '전체' },
+          ...groups.map(g => ({ key: g.name, label: g.name })),
+          { key: NO_GROUP, label: '미지정' },
+        ].map(chip => {
+          const active = groupFilter === chip.key;
+          const count = groupCounts[chip.key] ?? 0;
+          return (
+            <button
+              key={chip.key || 'all'}
+              onClick={() => setGroupFilter(chip.key)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${
+                active
+                  ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-teal-300'
+              }`}
+            >
+              {chip.label} <span className={active ? 'text-teal-100' : 'text-gray-400'}>({count})</span>
+            </button>
+          );
+        })}
+      </div>
 
       <div className="flex gap-4">
         {/* 회원 목록 */}

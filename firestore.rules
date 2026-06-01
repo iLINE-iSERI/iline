@@ -38,6 +38,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+    // 코드에서 사용 중인 그룹 컬렉션 (UserProfile.group 값과 연결)
+    match /groups/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    // 호환: 과거 명칭 (다른 곳에서 참조될 수 있어 그대로 유지)
     match /studentGroups/{id} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
