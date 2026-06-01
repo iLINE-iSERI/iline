@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { getAllUsers, getUserEnrollments, getCourse, getUserAllProgress, getUserPointHistory, getGroups } from '@/lib/firebase/firestore';
+import { getAllUsers, getUserEnrollments, getCourse, getUserAllProgress, getUserPointHistory, getGroups, updateUserProfile } from '@/lib/firebase/firestore';
 import type { UserProfile, Course, Progress, PointHistory, StudentGroup } from '@/lib/types';
 
 interface MemberDetail {
@@ -20,6 +20,7 @@ export default function AdminMembersPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState<string>(''); // '' = 전체
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -44,6 +45,80 @@ export default function AdminMembersPage() {
     });
     return counts;
   }, [users, groups]);
+
+  // 회원 그룹/카테고리/역할 변경 (관리자)
+  const handleUpdateUserField = async (
+    uid: string,
+    patch: Partial<Pick<UserProfile, 'group' | 'category' | 'role'>>
+  ) => {
+    setSavingProfile(true);
+    try {
+      await updateUserProfile(uid, patch);
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, ...patch } as UserProfile : u));
+      setSelectedUser(prev => prev && prev.user.uid === uid
+        ? { ...prev, user: { ...prev.user, ...patch } as UserProfile }
+        : prev);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '알 수 없는 오류';
+      alert(`회원 정보 변경 실패: ${msg}`);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // CSV 내보내기 — 현재 필터 결과 또는 전체
+  const handleExportCsv = (scope: 'filtered' | 'all') => {
+    const rows = scope === 'filtered' ? filteredUsers : users;
+    if (rows.length === 0) { alert('내보낼 회원이 없습니다'); return; }
+
+    const headers = [
+      '이름', '이메일', '전화번호', '역할', '그룹', '구분', '성별',
+      '생년월일', '학교', '학년', '그뤠잇', '가입일'
+    ];
+    const roleK: Record<string, string> = { student: '학생', teacher: '강사', admin: '관리자' };
+    const catK: Record<string, string> = { youth: '청소년', adult: '성인' };
+    const genderK: Record<string, string> = { male: '남', female: '여', unspecified: '미선택' };
+
+    const escape = (v: unknown) => {
+      const s = v == null ? '' : String(v);
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+
+    const lines = [headers.map(escape).join(',')];
+    rows.forEach(u => {
+      lines.push([
+        u.name || '',
+        u.email || '',
+        u.phone || '',
+        roleK[u.role] || u.role || '',
+        u.group || '',
+        u.category ? (catK[u.category] || u.category) : '',
+        u.gender ? (genderK[u.gender] || u.gender) : '',
+        u.birthDate || '',
+        u.school || '',
+        u.grade || '',
+        u.totalPoints ?? 0,
+        u.createdAt?.toDate ? new Date(u.createdAt.toDate()).toISOString().split('T')[0] : '',
+      ].map(escape).join(','));
+    });
+
+    // UTF-8 BOM 포함 — Google Sheets / Excel 한글 깨짐 방지
+    const bom = '﻿';
+    const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const today = new Date().toISOString().split('T')[0];
+    const filename = scope === 'filtered'
+      ? `iline_members_filtered_${today}.csv`
+      : `iline_members_all_${today}.csv`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const handleSelectUser = async (user: UserProfile) => {
     setDetailLoading(true);
@@ -87,8 +162,26 @@ export default function AdminMembersPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">회원 관리</h1>
-      <p className="text-gray-500 mb-6">총 {users.length}명의 회원 · 필터 적용 {filteredUsers.length}명</p>
+      <div className="flex items-start justify-between mb-2 gap-4">
+        <h1 className="text-3xl font-bold text-gray-900">회원 관리</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleExportCsv('filtered')}
+            className="bg-white border border-teal-300 text-teal-700 hover:bg-teal-50 font-semibold py-2 px-4 rounded-lg text-sm transition"
+            title="현재 필터 + 검색 결과만 내보내기"
+          >
+            📥 필터 결과 ({filteredUsers.length}명)
+          </button>
+          <button
+            onClick={() => handleExportCsv('all')}
+            className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition shadow-sm"
+            title="전체 회원을 CSV로 내려받아 Google Sheets에서 열기"
+          >
+            📊 전체 명단 ({users.length}명)
+          </button>
+        </div>
+      </div>
+      <p className="text-gray-500 mb-6">총 {users.length}명의 회원 · 필터 적용 {filteredUsers.length}명 · CSV는 Google Sheets에서 바로 열립니다</p>
 
       {/* 그룹 필터 칩 */}
       <div className="flex flex-wrap gap-2 mb-4">
@@ -169,6 +262,64 @@ export default function AdminMembersPage() {
                   {selectedUser.user.birthDate && (
                     <div className="mt-3 text-xs text-gray-400">생년월일: {selectedUser.user.birthDate}</div>
                   )}
+
+                  {/* 관리자 — 그룹/구분/역할 인라인 수정 */}
+                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                    <div className="flex items-center justify-between text-xs text-gray-500 font-semibold">
+                      <span>관리자 수정</span>
+                      {savingProfile && <span className="text-teal-500">저장 중...</span>}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="text-xs text-gray-600">
+                        <span className="block mb-1">그룹</span>
+                        <select
+                          value={selectedUser.user.group || ''}
+                          onChange={e => handleUpdateUserField(selectedUser.user.uid, { group: e.target.value })}
+                          disabled={savingProfile}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                        >
+                          <option value="">— 미지정 —</option>
+                          {groups.map(g => (
+                            <option key={g.id} value={g.name}>{g.name}</option>
+                          ))}
+                          {/* 기존 사용자에게 등록된 그룹이 현재 그룹 목록에 없는 경우 보존 */}
+                          {selectedUser.user.group && !groups.find(g => g.name === selectedUser.user.group) && (
+                            <option value={selectedUser.user.group}>{selectedUser.user.group} (목록 외)</option>
+                          )}
+                        </select>
+                      </label>
+                      <label className="text-xs text-gray-600">
+                        <span className="block mb-1">구분 <span className="text-amber-600">(그뤠잇은 청소년만)</span></span>
+                        <select
+                          value={selectedUser.user.category || ''}
+                          onChange={e => handleUpdateUserField(selectedUser.user.uid, { category: e.target.value as 'youth' | 'adult' | undefined })}
+                          disabled={savingProfile}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                        >
+                          <option value="">— 미지정 —</option>
+                          <option value="youth">청소년</option>
+                          <option value="adult">성인</option>
+                        </select>
+                      </label>
+                      <label className="text-xs text-gray-600 col-span-2">
+                        <span className="block mb-1">역할</span>
+                        <select
+                          value={selectedUser.user.role}
+                          onChange={e => {
+                            const next = e.target.value as 'student' | 'teacher' | 'admin';
+                            if (next === 'admin' && !confirm('이 회원을 관리자로 승격할까요? 관리자는 모든 화면에 접근 가능합니다.')) return;
+                            handleUpdateUserField(selectedUser.user.uid, { role: next });
+                          }}
+                          disabled={savingProfile}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                        >
+                          <option value="student">학생</option>
+                          <option value="teacher">강사</option>
+                          <option value="admin">관리자</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 수강 강좌 */}
