@@ -35,6 +35,17 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
 
+  // 약관 동의
+  const [agreedTerms, setAgreedTerms] = useState(false);
+  const [agreedPrivacy, setAgreedPrivacy] = useState(false);
+  const [agreedMarketing, setAgreedMarketing] = useState(false);
+  const allRequiredAgreed = agreedTerms && agreedPrivacy;
+  const handleAgreeAll = (checked: boolean) => {
+    setAgreedTerms(checked);
+    setAgreedPrivacy(checked);
+    setAgreedMarketing(checked);
+  };
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -60,6 +71,7 @@ export default function SignupPage() {
     if (!phone.trim()) { setError('연락처를 입력해주세요'); return; }
     if (password !== passwordConfirm) { setError('비밀번호가 일치하지 않습니다'); return; }
     if (password.length < 6) { setError('비밀번호는 6자 이상이어야 합니다'); return; }
+    if (!allRequiredAgreed) { setError('이용약관과 개인정보 처리방침에 동의해주세요'); return; }
 
     setLoading(true);
     try {
@@ -72,6 +84,9 @@ export default function SignupPage() {
         group: resolvedGroup,
         gender,
         phone,
+        agreedTerms,
+        agreedPrivacy,
+        agreedMarketing,
       });
       router.push('/dashboard');
     } catch (err) {
@@ -227,8 +242,65 @@ export default function SignupPage() {
               <input type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} placeholder="비밀번호 재입력" className={inputClass} required />
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-semibold py-3 rounded-xl transition-all hover:shadow-lg hover:shadow-purple-200 mt-2">
-              {loading ? '가입 중...' : '무료 회원가입'}
+            {/* === 약관 동의 === */}
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 space-y-3">
+              <label className="flex items-center gap-2 pb-3 border-b border-gray-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedTerms && agreedPrivacy && agreedMarketing}
+                  onChange={(e) => handleAgreeAll(e.target.checked)}
+                  className="w-5 h-5 accent-purple-600"
+                />
+                <span className="font-semibold text-gray-900">전체 동의</span>
+                <span className="text-xs text-gray-400">(선택 항목 포함)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedTerms}
+                  onChange={(e) => setAgreedTerms(e.target.checked)}
+                  className="w-4 h-4 accent-purple-600"
+                />
+                <span className="text-sm text-gray-700 flex-grow">
+                  <span className="text-red-500 font-semibold">[필수]</span> 이용약관 동의
+                </span>
+                <Link href="/terms" target="_blank" className="text-xs text-purple-600 hover:text-purple-700 font-medium">
+                  보기 →
+                </Link>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedPrivacy}
+                  onChange={(e) => setAgreedPrivacy(e.target.checked)}
+                  className="w-4 h-4 accent-purple-600"
+                />
+                <span className="text-sm text-gray-700 flex-grow">
+                  <span className="text-red-500 font-semibold">[필수]</span> 개인정보 처리방침 동의
+                </span>
+                <Link href="/privacy" target="_blank" className="text-xs text-purple-600 hover:text-purple-700 font-medium">
+                  보기 →
+                </Link>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedMarketing}
+                  onChange={(e) => setAgreedMarketing(e.target.checked)}
+                  className="w-4 h-4 accent-purple-600"
+                />
+                <span className="text-sm text-gray-700 flex-grow">
+                  <span className="text-gray-400 font-semibold">[선택]</span> 이벤트·마케팅 정보 수신 동의
+                </span>
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !allRequiredAgreed}
+              className="w-full bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-semibold py-3 rounded-xl transition-all hover:shadow-lg hover:shadow-purple-200 mt-2"
+            >
+              {loading ? '가입 중...' : !allRequiredAgreed ? '필수 약관에 동의해주세요' : '무료 회원가입'}
             </button>
           </form>
         )}

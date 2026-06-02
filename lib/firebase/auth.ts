@@ -24,9 +24,16 @@ export interface SignUpInput {
   group: string
   gender: 'male' | 'female' | 'unspecified'
   phone: string
+  // 약관 동의 (필수 2개는 true 여야 함, 선택은 동의 시 true)
+  agreedTerms: boolean
+  agreedPrivacy: boolean
+  agreedMarketing?: boolean
 }
 
 export async function signUpWithEmail(input: SignUpInput) {
+  if (!input.agreedTerms || !input.agreedPrivacy) {
+    throw new Error('이용약관 및 개인정보 처리방침에 동의해야 가입할 수 있습니다')
+  }
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, input.email, input.password)
     const user = userCredential.user
@@ -44,6 +51,12 @@ export async function signUpWithEmail(input: SignUpInput) {
       totalPoints: 0,
       createdAt: serverTimestamp(),
       photoURL: user.photoURL || null,
+      // 약관 동의 기록 — 컴플라이언스 증빙용
+      agreements: {
+        termsAt: serverTimestamp(),
+        privacyAt: serverTimestamp(),
+        marketingAt: input.agreedMarketing ? serverTimestamp() : null,
+      },
     })
 
     await awardPoints(user.uid, 'signup', '회원가입')

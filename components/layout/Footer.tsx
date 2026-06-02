@@ -58,7 +58,12 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 pt-8 border-t border-gray-800 text-center text-sm">
+        <div className="mt-10 pt-8 border-t border-gray-800 text-center text-sm space-y-3">
+          <div className="flex items-center justify-center gap-4 text-xs">
+            <Link href="/terms" className="hover:text-purple-400 transition-colors">이용약관</Link>
+            <span className="text-gray-700">|</span>
+            <Link href="/privacy" className="hover:text-purple-400 transition-colors font-semibold">개인정보 처리방침</Link>
+          </div>
           <p>&copy; {new Date().getFullYear()} iLINE 제주대학교 지능소프트웨어교육연구소. All rights reserved.</p>
         </div>
       </div>
