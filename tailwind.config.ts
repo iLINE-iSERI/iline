@@ -84,7 +84,10 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // 공지/자료실 본문 등 리치 텍스트 렌더링용
+    require('@tailwindcss/typography'),
+  ],
 }
 
 export default config

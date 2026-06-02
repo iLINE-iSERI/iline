@@ -4,25 +4,43 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { createPost } from '@/lib/firebase/firestore';
+import { getPost, updatePost } from '@/lib/firebase/firestore';
 import { uploadPostImage } from '@/lib/firebase/storage';
 import RichTextEditor from '@/components/editor/RichTextEditor';
 
-function NewNoticeContent() {
-  const { user, userProfile, loading: authLoading } = useAuth();
+interface Props { params: { id: string } }
+
+function EditNoticeContent({ id }: { id: string }) {
+  const { userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
     if (!userProfile || userProfile.role !== 'admin') {
-      router.push('/board/notice');
+      router.push(`/board/notice/${id}`);
     }
-  }, [authLoading, userProfile, router]);
+  }, [authLoading, userProfile, router, id]);
+
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    getPost(id).then((post) => {
+      if (!alive) return;
+      if (!post || post.type !== 'notice') { setNotFound(true); setLoading(false); return; }
+      setTitle(post.title);
+      setContent(post.content || '');
+      setAttachmentUrl(post.attachmentUrl || '');
+      setLoading(false);
+    });
+    return () => { alive = false; };
+  }, [id]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,29 +58,37 @@ function NewNoticeContent() {
   };
 
   const handleSubmit = async () => {
-    if (!user?.uid) return;
     if (!title.trim()) { alert('제목을 입력하세요'); return; }
-    // 리치 텍스트는 빈 에디터도 <p></p> 형태 → 텍스트만 추출해 검증
     const plain = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
     if (!plain) { alert('내용을 입력하세요'); return; }
     setSaving(true);
     try {
-      await createPost({
-        type: 'notice',
+      await updatePost(id, {
         title: title.trim(),
         content: content,
-        authorId: user.uid,
         attachmentUrl: attachmentUrl.trim() || undefined,
       });
-      router.push('/board/notice');
-    } catch {
-      alert('저장 실패');
+      router.push(`/board/notice/${id}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '알 수 없는 오류';
+      alert(`저장 실패: ${msg}`);
       setSaving(false);
     }
   };
 
-  if (authLoading) {
+  if (authLoading || loading) {
     return <div className="max-w-3xl mx-auto px-4 py-8"><div className="h-32 bg-gray-200 animate-pulse rounded-xl" /></div>;
+  }
+
+  if (notFound) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-8 text-center">
+        <p className="text-gray-600 mb-4">공지를 찾을 수 없습니다</p>
+        <button onClick={() => router.push('/board/notice')} className="text-blue-600 hover:text-blue-700 font-semibold">
+          공지사항 목록으로
+        </button>
+      </div>
+    );
   }
 
   const inputClass = 'w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition';
@@ -70,14 +96,14 @@ function NewNoticeContent() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <button
-        onClick={() => router.push('/board/notice')}
+        onClick={() => router.push(`/board/notice/${id}`)}
         className="text-blue-600 hover:text-blue-700 font-semibold mb-6"
       >
-        ← 공지사항 목록
+        ← 공지 상세로 돌아가기
       </button>
 
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">공지사항 작성</h1>
-      <p className="text-gray-500 mb-8">이벤트 안내 등 공지를 작성합니다. 글꼴/색상/표 등 다양한 서식을 활용할 수 있어요.</p>
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">공지 수정</h1>
+      <p className="text-gray-500 mb-8">제목, 본문, 대표 이미지를 모두 수정할 수 있어요.</p>
 
       <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
         <div>
@@ -85,7 +111,6 @@ function NewNoticeContent() {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="예: 2026년 5월 디지털 윤리 워크샵 안내"
             className={inputClass}
           />
         </div>
@@ -95,10 +120,9 @@ function NewNoticeContent() {
           <RichTextEditor
             value={content}
             onChange={setContent}
-            placeholder="이벤트 안내를 작성하세요. 표 / 글꼴 / 색상 등 다양한 서식이 가능합니다."
+            placeholder="이벤트 안내를 작성하세요."
             minHeight={320}
           />
-          <p className="text-xs text-gray-400 mt-1">툴바에서 표·색상·글꼴 선택, 텍스트 드래그 후 적용. Ctrl+B 굵게 / Ctrl+I 기울임 / Ctrl+Z 실행취소.</p>
         </div>
 
         <div>
@@ -126,12 +150,18 @@ function NewNoticeContent() {
               />
             </div>
           )}
-          <p className="text-xs text-gray-400 mt-1">최대 5MB · jpg/png/webp 등 이미지</p>
+          <button
+            type="button"
+            onClick={() => setAttachmentUrl('')}
+            className="text-xs text-red-500 hover:text-red-700 mt-2"
+          >
+            대표 이미지 제거
+          </button>
         </div>
 
         <div className="flex gap-2 justify-end pt-4 border-t border-gray-100">
           <button
-            onClick={() => router.push('/board/notice')}
+            onClick={() => router.push(`/board/notice/${id}`)}
             className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-5 rounded-lg transition"
           >
             취소
@@ -141,7 +171,7 @@ function NewNoticeContent() {
             disabled={saving}
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-300 text-white font-semibold py-2.5 px-6 rounded-lg transition"
           >
-            {saving ? '게시 중...' : '공지 게시'}
+            {saving ? '저장 중...' : '저장'}
           </button>
         </div>
       </div>
@@ -149,10 +179,10 @@ function NewNoticeContent() {
   );
 }
 
-export default function NewNoticePage() {
+export default function EditNoticePage({ params }: Props) {
   return (
     <AuthGuard>
-      <NewNoticeContent />
+      <EditNoticeContent id={params.id} />
     </AuthGuard>
   );
 }

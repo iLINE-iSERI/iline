@@ -6,6 +6,7 @@ import { getPosts } from '@/lib/firebase/firestore';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { formatDate } from '@/lib/utils';
+import { htmlToPlainText } from '@/components/editor/RichTextDisplay';
 import type { Post } from '@/lib/types';
 
 function NoticeContent() {
@@ -87,7 +88,7 @@ function NoticeContent() {
                     <h3 className="text-xl font-semibold text-gray-900 line-clamp-2">{post.title}</h3>
                     <span className="text-sm text-gray-500 flex-shrink-0">{formatDate(post.createdAt)}</span>
                   </div>
-                  <p className="text-gray-700 mb-3 line-clamp-3 whitespace-pre-wrap">{post.content}</p>
+                  <p className="text-gray-700 mb-3 line-clamp-3">{htmlToPlainText(post.content)}</p>
                   <span className="text-blue-600 font-semibold text-sm">자세히 보기 →</span>
                 </div>
               </div>

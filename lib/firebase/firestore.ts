@@ -156,6 +156,12 @@ export async function getPost(id: string): Promise<Post | null> {
   } catch (error) { console.error('게시글 단건 조회 에러:', error); return null }
 }
 
+export async function updatePost(id: string, data: Partial<Omit<Post, 'id' | 'createdAt'>>) {
+  try {
+    await updateDoc(doc(db, 'posts', id), { ...data, updatedAt: serverTimestamp() })
+  } catch (error) { console.error('게시글 수정 에러:', error); throw error }
+}
+
 export async function deletePost(id: string) {
   try { await deleteDoc(doc(db, 'posts', id)) }
   catch (error) { console.error('게시글 삭제 에러:', error); throw error }
