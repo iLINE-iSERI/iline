@@ -54,6 +54,17 @@ export function extractYouTubeId(url: string): string | null {
 }
 
 /**
+ * YouTube URL → 썸네일 이미지 URL.
+ * quality: 'max' (1280×720, 일부 영상은 없음) | 'hq' (480×360, 항상 존재) | 'mq' (320×180)
+ */
+export function getYouTubeThumbnail(youtubeUrl: string, quality: 'max' | 'hq' | 'mq' = 'hq'): string | null {
+  const id = extractYouTubeId(youtubeUrl);
+  if (!id) return null;
+  const filename = quality === 'max' ? 'maxresdefault' : quality === 'mq' ? 'mqdefault' : 'hqdefault';
+  return `https://img.youtube.com/vi/${id}/${filename}.jpg`;
+}
+
+/**
  * 초 단위를 시:분:초 형식으로 변환
  * @param seconds 초
  * @returns 포맷된 시간 문자열 (예: "1:23:45")

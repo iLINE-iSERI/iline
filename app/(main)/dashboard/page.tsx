@@ -6,7 +6,7 @@ import AuthGuard from '@/components/auth/AuthGuard';
 import { getUserEnrollments, getCourse, getProgress, getCategories, getUserPointHistory } from '@/lib/firebase/firestore';
 import type { Course, Enrollment, Progress, Category, PointHistory } from '@/lib/types';
 import Link from 'next/link';
-import { formatSeconds } from '@/lib/utils';
+import { formatSeconds, getYouTubeThumbnail } from '@/lib/utils';
 
 interface EnrolledCourseData { enrollment: Enrollment; course: Course; progress: Progress | null; }
 
@@ -96,7 +96,21 @@ function DashboardContent() {
               const pct = item.progress && item.progress.totalDuration > 0 ? Math.min(100, Math.round((item.progress.lastPosition / item.progress.totalDuration) * 100)) : 0;
               return (
                 <Link key={item.enrollment.id} href={`/courses/${item.course.id}`} className="bg-white rounded-2xl shadow hover:shadow-lg transition overflow-hidden border border-gray-100">
-                  <div className="relative"><img src={item.course.thumbnailUrl} alt={item.course.title} className="w-full h-40 object-cover" /><span className="absolute top-2 right-2 bg-gradient-to-r from-teal-500 to-blue-500 text-white text-xs font-semibold px-2 py-1 rounded-full">{catMap[item.course.category] || item.course.category}</span></div>
+                  <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.course.thumbnailUrl || getYouTubeThumbnail(item.course.youtubeUrl, 'max') || ''}
+                      alt={item.course.title}
+                      className="w-full h-40 object-cover bg-gray-100"
+                      onError={(e) => {
+                        const fallback = getYouTubeThumbnail(item.course.youtubeUrl, 'hq');
+                        const img = e.target as HTMLImageElement;
+                        if (fallback && img.src !== fallback) { img.src = fallback; return; }
+                        img.style.display = 'none';
+                      }}
+                    />
+                    <span className="absolute top-2 right-2 bg-gradient-to-r from-teal-500 to-blue-500 text-white text-xs font-semibold px-2 py-1 rounded-full">{catMap[item.course.category] || item.course.category}</span>
+                  </div>
                   <div className="p-4">
                     <h3 className="font-semibold text-gray-900 mb-3 line-clamp-2">{item.course.title}</h3>
                     {item.progress?.completed ? (<div className="text-green-600 font-semibold text-sm">✓ 학습 완료</div>) : (<div><div className="flex justify-between text-xs text-gray-500 mb-1"><span>{formatSeconds(item.progress?.lastPosition || 0)} 시청</span><span>{pct}%</span></div><div className="w-full bg-gray-200 rounded-full h-2"><div className="bg-gradient-to-r from-teal-400 to-blue-500 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} /></div></div>)}

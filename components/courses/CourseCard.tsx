@@ -1,5 +1,9 @@
+'use client';
+
 import type { Course } from '@/lib/types';
 import Link from 'next/link';
+import { useState } from 'react';
+import { getYouTubeThumbnail } from '@/lib/utils';
 
 interface CourseCardProps {
   course: Course;
@@ -18,19 +22,46 @@ export default function CourseCard({ course }: CourseCardProps) {
     'coding': 'from-blue-500 to-blue-600',
   };
 
+  // 우선순위: 명시된 thumbnailUrl → YouTube 고해상도 → 깨지면 YouTube 표준 화질
+  const ytMax = getYouTubeThumbnail(course.youtubeUrl, 'max');
+  const ytHq = getYouTubeThumbnail(course.youtubeUrl, 'hq');
+  const initialSrc = course.thumbnailUrl || ytMax || ytHq || '';
+  const [src, setSrc] = useState(initialSrc);
+  const [errored, setErrored] = useState(false);
+
+  const handleError = () => {
+    // maxresdefault → hqdefault 폴백 → 그래도 실패면 placeholder 표시
+    if (src === course.thumbnailUrl && ytMax) { setSrc(ytMax); return; }
+    if (src !== ytHq && ytHq) { setSrc(ytHq); return; }
+    setErrored(true);
+  };
+
+  const gradient = categoryGradient[course.category] || 'from-gray-400 to-gray-500';
+  const label = categoryLabel[course.category] || course.category;
+
   return (
     <Link href={`/courses/${course.id}`}>
       <div className="card-hover bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer h-full flex flex-col">
         <div className="relative overflow-hidden bg-gray-100 h-44">
-          <img
-            src={course.thumbnailUrl}
-            alt={course.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
+          {src && !errored ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={src}
+              alt={course.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              onError={handleError}
+            />
+          ) : (
+            <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${gradient}`}>
+              <svg className="w-16 h-16 text-white/70" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          )}
           <span
-            className={`absolute top-3 right-3 text-xs font-semibold px-3 py-1 rounded-full bg-gradient-to-r ${categoryGradient[course.category]} text-white shadow-md`}
+            className={`absolute top-3 right-3 text-xs font-semibold px-3 py-1 rounded-full bg-gradient-to-r ${gradient} text-white shadow-md`}
           >
-            {categoryLabel[course.category]}
+            {label}
           </span>
         </div>
 

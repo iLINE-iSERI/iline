@@ -5,6 +5,7 @@ import {
   getAllCourses, createCourse, updateCourse, deleteCourse,
   getCategories, createCategory, updateCategory, deleteCategory
 } from '@/lib/firebase/firestore';
+import { getYouTubeThumbnail } from '@/lib/utils';
 import type { Course, Category, CategoryColor } from '@/lib/types';
 
 const COLOR_OPTIONS: { value: CategoryColor; label: string; preview: string }[] = [
@@ -468,11 +469,42 @@ export default function AdminCoursesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">YouTube URL</label>
-                  <input type="url" value={formData.youtubeUrl} onChange={e => setFormData({ ...formData, youtubeUrl: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" />
+                  <input
+                    type="url"
+                    value={formData.youtubeUrl}
+                    onChange={e => {
+                      const url = e.target.value;
+                      // 썸네일이 비어있거나 기존 YouTube URL에서 자동 생성된 값이면 새 URL로 자동 재계산
+                      const prevAuto = getYouTubeThumbnail(formData.youtubeUrl, 'max');
+                      const isAuto = !formData.thumbnailUrl || formData.thumbnailUrl === prevAuto;
+                      const nextThumb = isAuto ? (getYouTubeThumbnail(url, 'max') || '') : formData.thumbnailUrl;
+                      setFormData({ ...formData, youtubeUrl: url, thumbnailUrl: nextThumb });
+                    }}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">URL 입력 시 썸네일이 자동으로 채워져요</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">썸네일 URL</label>
-                  <input type="url" value={formData.thumbnailUrl} onChange={e => setFormData({ ...formData, thumbnailUrl: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">썸네일 URL (자동 채움 / 직접 수정 가능)</label>
+                  <input
+                    type="url"
+                    value={formData.thumbnailUrl}
+                    onChange={e => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                    placeholder="비워두면 YouTube 썸네일 자동 사용"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+                  />
+                  {formData.thumbnailUrl && (
+                    <div className="mt-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={formData.thumbnailUrl}
+                        alt="썸네일 미리보기"
+                        className="h-32 w-auto rounded-lg border border-gray-200 object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
