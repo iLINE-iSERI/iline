@@ -1,16 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getCourses, getCategories } from '@/lib/firebase/firestore';
 import AuthGuard from '@/components/auth/AuthGuard';
 import CourseCard from '@/components/courses/CourseCard';
 import type { Course, Category } from '@/lib/types';
 
 function CoursesContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialCategory = searchParams.get('category');
   const [courses, setCourses] = useState<Course[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory);
 
   const defaultCats = [
     { id: '1', name: 'AI 기초', slug: 'ai-basic', order: 0 },
@@ -35,6 +39,18 @@ function CoursesContent() {
     };
     loadData();
   }, []);
+
+  // 사용자가 다른 페이지에서 ?category=... 로 진입했거나 뒤로/앞으로 이동 시 동기화
+  useEffect(() => {
+    setSelectedCategory(searchParams.get('category'));
+  }, [searchParams]);
+
+  const handleSelectCategory = (slug: string | null) => {
+    setSelectedCategory(slug);
+    // URL 도 업데이트 — 새로고침/공유 시에도 같은 필터 유지
+    const next = slug ? `/courses?category=${encodeURIComponent(slug)}` : '/courses';
+    router.replace(next, { scroll: false });
+  };
 
   const activeCats = categories.length > 0 ? categories : defaultCats;
   const filteredCourses = selectedCategory
@@ -66,7 +82,7 @@ function CoursesContent() {
       {/* 동적 카테고리 필터 */}
       <div className="flex gap-2 mb-8 flex-wrap">
         <button
-          onClick={() => setSelectedCategory(null)}
+          onClick={() => handleSelectCategory(null)}
           className={`px-4 py-2 rounded-full font-semibold transition ${
             selectedCategory === null
               ? 'bg-gradient-to-r from-teal-500 to-blue-500 text-white'
@@ -78,7 +94,7 @@ function CoursesContent() {
         {activeCats.map(cat => (
           <button
             key={cat.id}
-            onClick={() => setSelectedCategory(cat.slug)}
+            onClick={() => handleSelectCategory(cat.slug)}
             className={`px-4 py-2 rounded-full font-semibold transition ${
               selectedCategory === cat.slug
                 ? 'bg-gradient-to-r from-teal-500 to-blue-500 text-white'
@@ -109,7 +125,18 @@ function CoursesContent() {
 export default function CoursesPage() {
   return (
     <AuthGuard>
-      <CoursesContent />
+      <Suspense fallback={
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="animate-pulse">
+            <div className="h-10 bg-gray-200 rounded w-1/4 mb-8" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1,2,3,4,5,6].map(i => <div key={i} className="h-80 bg-gray-200 rounded-lg" />)}
+            </div>
+          </div>
+        </div>
+      }>
+        <CoursesContent />
+      </Suspense>
     </AuthGuard>
   );
 }
