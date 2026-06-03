@@ -3,7 +3,7 @@
 import type { Course } from '@/lib/types';
 import Link from 'next/link';
 import { useState } from 'react';
-import { getYouTubeThumbnail } from '@/lib/utils';
+import { getYouTubeThumbnail, normalizeImageUrl } from '@/lib/utils';
 
 interface CourseCardProps {
   course: Course;
@@ -22,16 +22,17 @@ export default function CourseCard({ course }: CourseCardProps) {
     'coding': 'from-blue-500 to-blue-600',
   };
 
-  // 우선순위: 명시된 thumbnailUrl → YouTube 고해상도 → 깨지면 YouTube 표준 화질
+  // 우선순위: 정규화된 thumbnailUrl → YouTube 고해상도 → 깨지면 YouTube 표준 화질
+  const normalizedThumb = normalizeImageUrl(course.thumbnailUrl || '');
   const ytMax = getYouTubeThumbnail(course.youtubeUrl, 'max');
   const ytHq = getYouTubeThumbnail(course.youtubeUrl, 'hq');
-  const initialSrc = course.thumbnailUrl || ytMax || ytHq || '';
+  const initialSrc = normalizedThumb || ytMax || ytHq || '';
   const [src, setSrc] = useState(initialSrc);
   const [errored, setErrored] = useState(false);
 
   const handleError = () => {
-    // maxresdefault → hqdefault 폴백 → 그래도 실패면 placeholder 표시
-    if (src === course.thumbnailUrl && ytMax) { setSrc(ytMax); return; }
+    // 정규화 썸네일 → maxresdefault → hqdefault → placeholder 폴백
+    if (src === normalizedThumb && ytMax) { setSrc(ytMax); return; }
     if (src !== ytHq && ytHq) { setSrc(ytHq); return; }
     setErrored(true);
   };

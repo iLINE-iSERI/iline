@@ -5,7 +5,8 @@ import {
   getAllCourses, createCourse, updateCourse, deleteCourse,
   getCategories, createCategory, updateCategory, deleteCategory
 } from '@/lib/firebase/firestore';
-import { getYouTubeThumbnail } from '@/lib/utils';
+import { getYouTubeThumbnail, normalizeImageUrl } from '@/lib/utils';
+import { uploadCourseThumbnail } from '@/lib/firebase/storage';
 import type { Course, Category, CategoryColor } from '@/lib/types';
 
 const COLOR_OPTIONS: { value: CategoryColor; label: string; preview: string }[] = [
@@ -43,6 +44,22 @@ export default function AdminCoursesPage() {
     isPublished: false,
   });
   const formRef = useRef<HTMLDivElement | null>(null);
+  const [thumbUploading, setThumbUploading] = useState(false);
+
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setThumbUploading(true);
+    try {
+      const url = await uploadCourseThumbnail(file, editingId || undefined);
+      setFormData((prev) => ({ ...prev, thumbnailUrl: url }));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '업로드 실패');
+    } finally {
+      setThumbUploading(false);
+    }
+  };
 
   // 기본 카테고리 (DB에 없을 때 폴백)
   const defaultCategories = [
@@ -486,25 +503,37 @@ export default function AdminCoursesPage() {
                   <p className="text-xs text-gray-400 mt-1">URL 입력 시 썸네일이 자동으로 채워져요</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">썸네일 URL (자동 채움 / 직접 수정 가능)</label>
-                  <input
-                    type="url"
-                    value={formData.thumbnailUrl}
-                    onChange={e => setFormData({ ...formData, thumbnailUrl: e.target.value })}
-                    placeholder="비워두면 YouTube 썸네일 자동 사용"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">썸네일 URL (자동 채움 / 직접 수정 / 파일 업로드 가능)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={formData.thumbnailUrl}
+                      onChange={e => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                      placeholder="비워두면 YouTube 썸네일 자동 사용"
+                      className="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+                    />
+                    <label className={`flex-shrink-0 px-4 py-2 border-2 border-dashed rounded-lg text-sm font-medium cursor-pointer transition ${thumbUploading ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-wait' : 'border-teal-300 text-teal-600 hover:bg-teal-50'}`}>
+                      {thumbUploading ? '업로드 중...' : '📁 파일 선택'}
+                      <input type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={thumbUploading} className="hidden" />
+                    </label>
+                  </div>
                   {formData.thumbnailUrl && (
                     <div className="mt-2">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={formData.thumbnailUrl}
+                        src={normalizeImageUrl(formData.thumbnailUrl)}
                         alt="썸네일 미리보기"
-                        className="h-32 w-auto rounded-lg border border-gray-200 object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        className="h-32 w-auto rounded-lg border border-gray-200 object-cover bg-gray-50"
+                        onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.3'; }}
                       />
+                      {/drive\.google\.com\/file\/d\//.test(formData.thumbnailUrl) && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          ⚠️ Google Drive 공유 링크입니다. 저장 시 자동으로 직접 이미지 URL로 변환되어 표시됩니다.
+                        </p>
+                      )}
                     </div>
                   )}
+                  <p className="text-xs text-gray-400 mt-1">파일 업로드를 추천합니다. Drive 링크는 표시되더라도 외부 권한 변경 시 깨질 수 있어요.</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

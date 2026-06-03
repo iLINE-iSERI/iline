@@ -54,6 +54,24 @@ export function extractYouTubeId(url: string): string | null {
 }
 
 /**
+ * Google Drive 공유 링크처럼 <img>에서 직접 표시되지 않는 URL을 직접 사용 가능한 형태로 변환.
+ * 매칭되지 않으면 원본 그대로 반환.
+ */
+export function normalizeImageUrl(url: string): string {
+  if (!url) return url;
+  // 패턴 1: https://drive.google.com/file/d/{ID}/view?...
+  const m1 = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m1?.[1]) return `https://lh3.googleusercontent.com/d/${m1[1]}=w1280`;
+  // 패턴 2: https://drive.google.com/open?id={ID}
+  const m2 = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+  if (m2?.[1]) return `https://lh3.googleusercontent.com/d/${m2[1]}=w1280`;
+  // 패턴 3: https://drive.google.com/uc?id={ID}  (이미 변환된 형태지만 lh3가 더 안정적)
+  const m3 = url.match(/drive\.google\.com\/uc\?(?:export=view&)?id=([a-zA-Z0-9_-]+)/);
+  if (m3?.[1]) return `https://lh3.googleusercontent.com/d/${m3[1]}=w1280`;
+  return url;
+}
+
+/**
  * YouTube URL → 썸네일 이미지 URL.
  * quality: 'max' (1280×720, 일부 영상은 없음) | 'hq' (480×360, 항상 존재) | 'mq' (320×180)
  */

@@ -6,7 +6,7 @@ import AuthGuard from '@/components/auth/AuthGuard';
 import { getUserEnrollments, getCourse, getProgress, getCategories, getUserPointHistory } from '@/lib/firebase/firestore';
 import type { Course, Enrollment, Progress, Category, PointHistory } from '@/lib/types';
 import Link from 'next/link';
-import { formatSeconds, getYouTubeThumbnail } from '@/lib/utils';
+import { formatSeconds, getYouTubeThumbnail, normalizeImageUrl } from '@/lib/utils';
 
 interface EnrolledCourseData { enrollment: Enrollment; course: Course; progress: Progress | null; }
 
@@ -99,7 +99,7 @@ function DashboardContent() {
                   <div className="relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={item.course.thumbnailUrl || getYouTubeThumbnail(item.course.youtubeUrl, 'max') || ''}
+                      src={normalizeImageUrl(item.course.thumbnailUrl || '') || getYouTubeThumbnail(item.course.youtubeUrl, 'max') || ''}
                       alt={item.course.title}
                       className="w-full h-40 object-cover bg-gray-100"
                       onError={(e) => {
