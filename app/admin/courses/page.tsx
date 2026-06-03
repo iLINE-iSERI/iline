@@ -93,11 +93,12 @@ export default function AdminCoursesPage() {
     loadData();
   }, []);
 
-  // 카테고리 이름 찾기
+  // 카테고리 이름 찾기 + 매칭 여부
   const getCatName = (slug: string) => {
     const found = activeCats.find(c => c.slug === slug);
     return found ? found.name : slug;
   };
+  const isCatLinked = (slug: string) => !!activeCats.find(c => c.slug === slug);
 
   // === 강좌 핸들러 ===
   const handleSubmit = async (e: React.FormEvent) => {
@@ -469,6 +470,23 @@ export default function AdminCoursesPage() {
             </button>
           </div>
 
+          {/* 미연결 강좌 안내 — 카테고리 슬러그가 매칭 안 되면 메인/강좌 카테고리 필터에서 안 보임 */}
+          {(() => {
+            const unlinked = courses.filter(c => !isCatLinked(c.category));
+            if (unlinked.length === 0) return null;
+            return (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                <p className="font-semibold text-amber-900 text-sm">
+                  ⚠ 카테고리가 미연결된 강좌 {unlinked.length}개
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  이 강좌들은 메인 화면이나 강좌 페이지의 카테고리 필터에서는 보이지 않고 &ldquo;모든 강좌&rdquo;에서만 보입니다.
+                  아래 목록에서 노란색으로 강조된 행의 <b>수정</b>을 눌러 올바른 카테고리를 선택하세요.
+                </p>
+              </div>
+            );
+          })()}
+
           {/* 강좌 추가/수정 폼 */}
           {showForm && (
             <div ref={formRef} className="bg-white rounded-lg shadow p-8 mb-8 scroll-mt-20">
@@ -574,10 +592,21 @@ export default function AdminCoursesPage() {
                 </tr>
               </thead>
               <tbody>
-                {courses.map(course => (
-                  <tr key={course.id} className="border-b hover:bg-gray-50">
+                {courses.map(course => {
+                  const linked = isCatLinked(course.category);
+                  return (
+                  <tr key={course.id} className={`border-b hover:bg-gray-50 ${!linked ? 'bg-amber-50' : ''}`}>
                     <td className="px-6 py-4">{course.title}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{getCatName(course.category)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {linked ? (
+                        <span>{getCatName(course.category)}</span>
+                      ) : (
+                        <span className="text-amber-700">
+                          <span className="font-semibold">⚠ 미연결</span>
+                          <span className="ml-1 text-xs text-amber-600">({course.category || '비어있음'})</span>
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${course.isPublished ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                         {course.isPublished ? '공개' : '비공개'}
@@ -588,7 +617,8 @@ export default function AdminCoursesPage() {
                       <button onClick={() => handleDelete(course.id)} className="text-red-600 hover:text-red-700 font-semibold text-sm">삭제</button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {courses.length === 0 && (
                   <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-400">등록된 강좌가 없습니다</td></tr>
                 )}
