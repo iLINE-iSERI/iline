@@ -125,6 +125,9 @@ export interface StudentGroup {
   id: string
   name: string
   order: number
+  // 회원가입의 구분(youth/adult) 중 어떤 쪽에서 선택 가능한 그룹인지
+  // 미설정인 경우 미분류로 표시 (양쪽 다 노출하지 않음)
+  category?: 'youth' | 'adult'
   createdAt: Timestamp
   [key: string]: any
 }
