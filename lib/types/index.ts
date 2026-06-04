@@ -116,7 +116,8 @@ export interface Category {
   emoji?: string
   englishLabel?: string
   description?: string
-  colorTheme?: CategoryColor
+  colorTheme?: CategoryColor          // 옛 기본 팔레트 (호환)
+  customColor?: string                // 사용자가 색상표에서 직접 고른 헥스 (예: '#3b82f6'). 있으면 우선 적용
   showOnHome?: boolean
   [key: string]: any
 }

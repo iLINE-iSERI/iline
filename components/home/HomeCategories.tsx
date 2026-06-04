@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getCategories } from '@/lib/firebase/firestore';
+import { adjustHex } from '@/lib/utils';
 import type { Category, CategoryColor } from '@/lib/types';
 
 const COLOR_GRADIENTS: Record<CategoryColor, { card: string; label: string; sub: string }> = {
@@ -49,8 +50,27 @@ export default function HomeCategories() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
       {cats.map((cat, idx) => {
-        const color = COLOR_GRADIENTS[cat.colorTheme || FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length]];
         const englishLabel = cat.englishLabel || cat.slug.toUpperCase().replace(/-/g, ' ');
+
+        // 우선순위: customColor (헥스) → 옛 colorTheme → 폴백 팔레트 자동 회전
+        if (cat.customColor) {
+          const dark = adjustHex(cat.customColor, 0.6);
+          return (
+            <Link
+              key={cat.id}
+              href={`/courses?category=${cat.slug}`}
+              className="card-hover group relative overflow-hidden rounded-2xl p-4 sm:p-5 text-white min-h-[120px] sm:min-h-[140px] flex flex-col justify-end"
+              style={{ background: `linear-gradient(to bottom right, ${cat.customColor}, ${dark})` }}
+            >
+              {cat.emoji && <div className="absolute top-2 right-2 text-2xl sm:text-3xl opacity-30">{cat.emoji}</div>}
+              <div className="text-[10px] sm:text-xs font-medium text-white/80 mb-1 tracking-wider">{englishLabel}</div>
+              <h3 className="text-base sm:text-lg font-bold mb-1 leading-tight">{cat.name}</h3>
+              {cat.description && <p className="text-white/85 text-[11px] sm:text-xs line-clamp-2 leading-snug">{cat.description}</p>}
+            </Link>
+          );
+        }
+
+        const color = COLOR_GRADIENTS[cat.colorTheme || FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length]];
         return (
           <Link
             key={cat.id}

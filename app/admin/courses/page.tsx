@@ -5,9 +5,19 @@ import {
   getAllCourses, createCourse, updateCourse, deleteCourse,
   getCategories, createCategory, updateCategory, deleteCategory
 } from '@/lib/firebase/firestore';
-import { getYouTubeThumbnail, normalizeImageUrl } from '@/lib/utils';
+import { getYouTubeThumbnail, normalizeImageUrl, adjustHex } from '@/lib/utils';
 import { uploadCourseThumbnail } from '@/lib/firebase/storage';
+import CategoryColorPicker from '@/components/admin/CategoryColorPicker';
 import type { Course, Category, CategoryColor } from '@/lib/types';
+
+// 옛 colorTheme(이름) → 헥스 매핑 (편집 시 픽커 초기값으로 변환)
+const THEME_TO_HEX: Record<CategoryColor, string> = {
+  teal: '#14b8a6', blue: '#3b82f6', cyan: '#06b6d4', purple: '#a855f7',
+  pink: '#ec4899', orange: '#f97316', green: '#22c55e', red: '#ef4444',
+  yellow: '#eab308', lime: '#84cc16', emerald: '#10b981', sky: '#0ea5e9',
+  indigo: '#6366f1', violet: '#8b5cf6', fuchsia: '#d946ef', rose: '#f43f5e',
+  amber: '#f59e0b', slate: '#64748b',
+};
 
 const COLOR_OPTIONS: { value: CategoryColor; label: string; preview: string }[] = [
   { value: 'teal',    label: '청록',   preview: 'from-teal-500 to-teal-700' },
@@ -42,7 +52,7 @@ export default function AdminCoursesPage() {
   const [catEmoji, setCatEmoji] = useState('');
   const [catEnglishLabel, setCatEnglishLabel] = useState('');
   const [catDesc, setCatDesc] = useState('');
-  const [catColor, setCatColor] = useState<CategoryColor>('teal');
+  const [catColor, setCatColor] = useState<string>('#14b8a6'); // 헥스로 저장
   const [catShowOnHome, setCatShowOnHome] = useState(true);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -210,7 +220,8 @@ export default function AdminCoursesPage() {
       emoji: catEmoji.trim() || undefined,
       englishLabel: catEnglishLabel.trim() || undefined,
       description: catDesc.trim() || undefined,
-      colorTheme: catColor,
+      customColor: catColor,           // 헥스 — 항상 우선
+      colorTheme: undefined,            // 새로 저장할 땐 옛 이름 필드 사용 안 함
       showOnHome: catShowOnHome,
     };
     try {
@@ -249,7 +260,7 @@ export default function AdminCoursesPage() {
     setCatEmoji(cat.emoji || '');
     setCatEnglishLabel(cat.englishLabel || '');
     setCatDesc(cat.description || '');
-    setCatColor((cat.colorTheme as CategoryColor) || 'teal');
+    setCatColor(cat.customColor || (cat.colorTheme ? THEME_TO_HEX[cat.colorTheme] : '#14b8a6'));
     setCatShowOnHome(cat.showOnHome !== false);
     setEditingCatId(cat.id);
   };
@@ -371,21 +382,7 @@ export default function AdminCoursesPage() {
 
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-2">색상 테마</label>
-              <div className="flex flex-wrap gap-2">
-                {COLOR_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setCatColor(opt.value)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 transition ${
-                      catColor === opt.value ? 'border-gray-900' : 'border-transparent hover:border-gray-200'
-                    }`}
-                  >
-                    <span className={`w-6 h-6 rounded bg-gradient-to-br ${opt.preview}`} />
-                    <span className="text-sm">{opt.label}</span>
-                  </button>
-                ))}
-              </div>
+              <CategoryColorPicker value={catColor} onChange={setCatColor} />
             </div>
 
             <div className="flex items-center gap-2">
@@ -432,11 +429,15 @@ export default function AdminCoursesPage() {
               <tbody>
                 {activeCats.map((cat) => {
                   const c = cat as Category;
-                  const colorPreview = COLOR_OPTIONS.find(o => o.value === c.colorTheme)?.preview || 'from-gray-400 to-gray-600';
+                  const baseHex = c.customColor || (c.colorTheme ? THEME_TO_HEX[c.colorTheme] : '#9ca3af');
+                  const previewStyle = { background: `linear-gradient(to bottom right, ${baseHex}, ${adjustHex(baseHex, 0.65)})` };
                   return (
                     <tr key={c.id} className="border-b hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-br ${colorPreview} text-white text-xs`}>
+                        <div
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-white text-xs"
+                          style={previewStyle}
+                        >
                           {c.emoji && <span>{c.emoji}</span>}
                           <span className="font-medium">{c.englishLabel || c.slug.toUpperCase()}</span>
                         </div>

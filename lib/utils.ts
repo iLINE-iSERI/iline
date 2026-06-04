@@ -54,6 +54,32 @@ export function extractYouTubeId(url: string): string | null {
 }
 
 /**
+ * 헥스 색상(#RRGGBB)을 어둡게/밝게 조정. factor 1.0 = 원본, 0.7 = 30% 어둡게.
+ */
+export function adjustHex(hex: string, factor: number): string {
+  if (!hex || hex[0] !== '#' || hex.length !== 7) return hex
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)))
+  const toHex = (n: number) => clamp(n).toString(16).padStart(2, '0')
+  return `#${toHex(r * factor)}${toHex(g * factor)}${toHex(b * factor)}`
+}
+
+/**
+ * 헥스 색상의 상대 휘도(perceived brightness) — 어두운 배경 위 흰 텍스트 가독성 판단용.
+ * 반환값 0(가장 어두움) ~ 1(가장 밝음).
+ */
+export function hexLuminance(hex: string): number {
+  if (!hex || hex[0] !== '#' || hex.length !== 7) return 0.5
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  // 단순 가중 평균 (sRGB 감마는 무시 — 카드 색 선택 UI엔 충분히 정확)
+  return 0.299 * r + 0.587 * g + 0.114 * b
+}
+
+/**
  * Google Drive 공유 링크처럼 <img>에서 직접 표시되지 않는 URL을 직접 사용 가능한 형태로 변환.
  * 매칭되지 않으면 원본 그대로 반환.
  */
