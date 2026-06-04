@@ -59,8 +59,11 @@ export interface Post {
   title: string
   content: string
   authorId: string
+  // 단일 첨부 (옛 필드, 호환 유지) — 표시 시 attachmentUrls 와 머지
   attachmentUrl?: string
   attachmentName?: string
+  // 다중 첨부 (최대 5개, 새 필드)
+  attachmentUrls?: string[]
   linkUrl?: string
   createdAt: Timestamp
   updatedAt: Timestamp

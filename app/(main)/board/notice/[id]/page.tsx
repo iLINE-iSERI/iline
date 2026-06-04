@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -17,12 +17,26 @@ function NoticeDetailContent({ id }: { id: string }) {
   const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
-  const [zoomed, setZoomed] = useState(false);
+  const [zoomIdx, setZoomIdx] = useState<number | null>(null); // null = 닫힘, 숫자 = 그 인덱스 표시
   const isAdmin = userProfile?.role === 'admin';
 
+  // 옛 단일 필드 + 새 배열 머지 (중복 제거)
+  const images = useMemo<string[]>(() => {
+    if (!post) return [];
+    const arr = [
+      ...(post.attachmentUrls || []),
+      ...(post.attachmentUrl ? [post.attachmentUrl] : []),
+    ].filter(Boolean) as string[];
+    return Array.from(new Set(arr));
+  }, [post]);
+
   useEffect(() => {
-    if (!zoomed) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setZoomed(false); };
+    if (zoomIdx === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setZoomIdx(null);
+      if (e.key === 'ArrowRight') setZoomIdx(idx => idx === null ? idx : Math.min(images.length - 1, idx + 1));
+      if (e.key === 'ArrowLeft') setZoomIdx(idx => idx === null ? idx : Math.max(0, idx - 1));
+    };
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -30,7 +44,7 @@ function NoticeDetailContent({ id }: { id: string }) {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
-  }, [zoomed]);
+  }, [zoomIdx, images.length]);
 
   useEffect(() => {
     if (!id) return;
@@ -90,19 +104,47 @@ function NoticeDetailContent({ id }: { id: string }) {
       </div>
 
       <article className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        {post.attachmentUrl && (
+        {/* 첨부 이미지 — 1개면 단일 큰 이미지, 여러 개면 첫 번째 강조 + 썸네일 strip */}
+        {images.length > 0 && (
           <div className="bg-gray-50 border-b border-gray-100">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={post.attachmentUrl}
+              src={images[0]}
               alt={post.title}
               className="w-full max-h-96 object-contain mx-auto cursor-zoom-in transition hover:opacity-90"
-              onClick={() => setZoomed(true)}
+              onClick={() => setZoomIdx(0)}
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
-            <p className="text-center text-xs text-gray-400 pb-2">이미지를 클릭하면 크게 볼 수 있어요</p>
+            {images.length > 1 && (
+              <div className="px-3 py-2 flex gap-2 overflow-x-auto">
+                {images.map((url, idx) => (
+                  <button
+                    key={url + idx}
+                    type="button"
+                    onClick={() => setZoomIdx(idx)}
+                    className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-400 transition relative"
+                    title={`이미지 ${idx + 1} / ${images.length}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={`첨부 ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.3'; }}
+                    />
+                    <span className="absolute bottom-0.5 right-0.5 bg-black/60 text-white text-[9px] font-semibold px-1 rounded">
+                      {idx + 1}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="text-center text-xs text-gray-400 pb-2">
+              이미지를 클릭하면 크게 볼 수 있어요{images.length > 1 ? ' (← → 키로 이동)' : ''}
+            </p>
           </div>
         )}
+
         <div className="p-6 sm:p-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{post.title}</h1>
           <p className="text-sm text-gray-500 mb-6">
@@ -118,26 +160,54 @@ function NoticeDetailContent({ id }: { id: string }) {
         </div>
       </article>
 
-      {zoomed && post.attachmentUrl && (
+      {/* 라이트박스 */}
+      {zoomIdx !== null && images[zoomIdx] && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
-          onClick={() => setZoomed(false)}
+          onClick={() => setZoomIdx(null)}
           role="dialog"
           aria-modal="true"
           aria-label="이미지 확대 보기"
         >
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); setZoomed(false); }}
+            onClick={(e) => { e.stopPropagation(); setZoomIdx(null); }}
             className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl flex items-center justify-center transition"
             aria-label="닫기"
           >
             ×
           </button>
+
+          {images.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setZoomIdx(Math.max(0, zoomIdx - 1)); }}
+                disabled={zoomIdx === 0}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed text-white text-2xl flex items-center justify-center transition"
+                aria-label="이전 이미지"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setZoomIdx(Math.min(images.length - 1, zoomIdx + 1)); }}
+                disabled={zoomIdx === images.length - 1}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed text-white text-2xl flex items-center justify-center transition"
+                aria-label="다음 이미지"
+              >
+                →
+              </button>
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/10 text-white text-sm font-medium px-3 py-1 rounded-full">
+                {zoomIdx + 1} / {images.length}
+              </div>
+            </>
+          )}
+
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={post.attachmentUrl}
-            alt={post.title}
+            src={images[zoomIdx]}
+            alt={`${post.title} ${zoomIdx + 1}`}
             className="max-w-full max-h-full object-contain select-none"
             onClick={(e) => e.stopPropagation()}
           />
