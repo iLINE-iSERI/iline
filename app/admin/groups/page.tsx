@@ -192,11 +192,34 @@ export default function AdminGroupsPage() {
     const categoryFixCount = toUpdate.length;
 
     // 3. 누락된 스펙 그룹 추가
+    const specKeys = new Set(DEFAULT_GROUPS.map(d => norm(d.name)));
     const existingKeys = new Set(dupKeep.map(g => norm(g.name)));
     const toCreate = DEFAULT_GROUPS.filter(d => !existingKeys.has(norm(d.name)));
     const createCount = toCreate.length;
 
-    if (groupRenames.length + userRenames.length + duplicatesCount + categoryFixCount + createCount === 0) {
+    // 4. 스펙 외 그룹 정리
+    //    - 회원 0명: 자동 삭제
+    //    - 회원 있음: 알림만 (관리자가 직접 처리)
+    const dupKeepIds = new Set(dupKeep.map(g => g.id));
+    const orphanEmpty: StudentGroup[] = [];
+    const orphanWithMembers: StudentGroup[] = [];
+    dupKeep.forEach(g => {
+      if (specKeys.has(norm(g.name))) return; // 스펙에 있으면 통과
+      // 카운트 (rename 반영된 이름 기준)
+      const count = users.filter(u => {
+        const cur = (u.group || '').trim();
+        const mapped = RENAME_MAP[cur] || cur;
+        return mapped === g.name;
+      }).length;
+      if (count === 0) orphanEmpty.push(g);
+      else orphanWithMembers.push(g);
+    });
+    const orphanDeleteCount = orphanEmpty.length;
+
+    if (
+      groupRenames.length + userRenames.length + duplicatesCount + categoryFixCount + createCount + orphanDeleteCount === 0
+      && orphanWithMembers.length === 0
+    ) {
       alert('이미 최종 스펙 그대로 정리되어 있습니다');
       return;
     }
@@ -207,6 +230,12 @@ export default function AdminGroupsPage() {
     const userRenameSummary = userRenames.length > 0
       ? `회원 ${userRenames.length}명의 group 값 자동 변경`
       : null;
+    const orphanDeleteSummary = orphanDeleteCount > 0
+      ? `스펙 외 빈 그룹 ${orphanDeleteCount}개 자동 삭제 (${orphanEmpty.map(g => g.name).join(', ')})`
+      : null;
+    const orphanWarnSummary = orphanWithMembers.length > 0
+      ? `⚠ 스펙 외 그룹 ${orphanWithMembers.length}개 (회원 있음) — 자동 삭제하지 않음: ${orphanWithMembers.map(g => `${g.name}(${users.filter(u => (u.group || '').trim() === g.name).length}명)`).join(', ')}`
+      : null;
 
     const msg = [
       renameSummary,
@@ -214,9 +243,11 @@ export default function AdminGroupsPage() {
       duplicatesCount > 0 ? `중복 그룹 ${duplicatesCount}개 삭제` : null,
       categoryFixCount > 0 ? `카테고리 ${categoryFixCount}개 조정` : null,
       createCount > 0 ? `누락된 ${createCount}개 추가 (${toCreate.map(d => d.name).join(', ')})` : null,
+      orphanDeleteSummary,
+      orphanWarnSummary,
     ].filter(Boolean).join('\n');
 
-    if (!confirm(`다음 작업을 진행할까요?\n\n${msg}\n\n스펙에 없는 옛 그룹(예: 초등학생 등)은 건드리지 않습니다.`)) return;
+    if (!confirm(`다음 작업을 진행할까요?\n\n${msg}`)) return;
 
     setSeeding(true);
     try {
@@ -236,9 +267,11 @@ export default function AdminGroupsPage() {
         }));
       }
 
-      // 1. 중복 삭제
-      await Promise.all(toDelete.map(id => deleteGroup(id)));
+      // 1. 중복 삭제 + 스펙 외 빈 그룹 삭제
+      const allDeletes = [...toDelete, ...orphanEmpty.map(g => g.id)];
+      await Promise.all(allDeletes.map(id => deleteGroup(id)));
       if (toDelete.length) summary.push(`중복 ${toDelete.length}개 삭제`);
+      if (orphanEmpty.length) summary.push(`스펙 외 빈 그룹 ${orphanEmpty.length}개 삭제`);
 
       // 2. 카테고리 업데이트
       await Promise.all(toUpdate.map(u => updateGroup(u.id, u.data)));
@@ -246,31 +279,36 @@ export default function AdminGroupsPage() {
 
       // 3. 신규 추가 (스펙 순서대로 order 부여)
       const remainingMax = Math.max(0, ...dupKeep.map(g => g.order || 0));
-      let base = remainingMax + 1;
+      let baseOrder = remainingMax + 1;
       const created: StudentGroup[] = [];
       for (const d of toCreate) {
-        const id = await createGroup({ name: d.name, order: base, category: d.category });
-        created.push({ id, name: d.name, order: base, category: d.category } as StudentGroup);
-        base += 1;
+        const id = await createGroup({ name: d.name, order: baseOrder, category: d.category });
+        created.push({ id, name: d.name, order: baseOrder, category: d.category } as StudentGroup);
+        baseOrder += 1;
       }
       if (created.length) summary.push(`${created.length}개 신규 추가`);
 
       // 로컬 groups 재계산 (rename + delete + update + create 모두 반영)
+      const deletedIds = new Set(allDeletes);
       const next = [
         ...dupKeep
-          .filter(g => !toDelete.includes(g.id))
+          .filter(g => !deletedIds.has(g.id))
           .map(g => {
             // rename 적용
             const r = groupRenames.find(x => x.id === g.id);
-            const base = r ? { ...g, name: r.to } : g;
+            const renamed = r ? { ...g, name: r.to } : g;
             // category 업데이트 적용
-            const upd = toUpdate.find(u => u.id === base.id);
-            return upd ? { ...base, ...upd.data } : base;
+            const upd = toUpdate.find(u => u.id === renamed.id);
+            return upd ? { ...renamed, ...upd.data } : renamed;
           }),
         ...created,
       ];
       setGroups(next);
-      alert(`완료\n• ${summary.join('\n• ')}`);
+
+      const warning = orphanWithMembers.length > 0
+        ? `\n\n⚠ 회원이 있는 스펙 외 그룹은 그대로 두었습니다. 해당 회원을 회원관리에서 다른 그룹으로 옮긴 뒤 다시 이 버튼을 누르면 자동 삭제됩니다.`
+        : '';
+      alert(`완료\n• ${summary.join('\n• ')}${warning}`);
     } catch (e) {
       const m = e instanceof Error ? e.message : '알 수 없는 오류';
       alert(`작업 중 일부 실패: ${m}\n페이지를 새로고침해 현재 상태를 확인하세요.`);
@@ -380,7 +418,7 @@ export default function AdminGroupsPage() {
       <div className="bg-gradient-to-r from-purple-50 to-teal-50 border border-purple-200 rounded-2xl p-5 mb-6 flex items-center gap-4">
         <div className="flex-grow">
           <p className="font-semibold text-purple-900 text-sm">최종 스펙대로 한 번에 정리</p>
-          <p className="text-xs text-purple-700 mt-1">옛 이름 통일(학교 밖→학교밖청소년, 기관관계자→기관 관계자) · 회원 group 값 자동 변경 · 중복 자동 병합 · 카테고리 자동 부여 · 누락 그룹 자동 추가</p>
+          <p className="text-xs text-purple-700 mt-1">옛 이름 통일 · 회원 group 값 자동 변경 · 중복 병합 · 카테고리 자동 부여 · 누락 그룹 자동 추가 · 스펙 외 빈 그룹 자동 삭제 (회원이 있는 스펙 외 그룹은 안전상 유지)</p>
         </div>
         <button
           onClick={handleApplyFinalSpec}
