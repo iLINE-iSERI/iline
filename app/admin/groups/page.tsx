@@ -4,18 +4,20 @@ import { useEffect, useMemo, useState } from 'react';
 import { getGroups, createGroup, updateGroup, deleteGroup, getAllUsers } from '@/lib/firebase/firestore';
 import type { StudentGroup, UserProfile } from '@/lib/types';
 
-// 회원가입 폼과 동일한 매핑
+// 회원가입 폼과 동일한 최종 매핑 (10개)
 const DEFAULT_GROUPS: { name: string; category: 'youth' | 'adult' }[] = [
   // 청소년
-  { name: '초등학교', category: 'youth' },
-  { name: '중학교',   category: 'youth' },
-  { name: '고등학교', category: 'youth' },
-  { name: '학교 밖',  category: 'youth' },
+  { name: '초등학교',     category: 'youth' },
+  { name: '중학교',       category: 'youth' },
+  { name: '고등학교',     category: 'youth' },
+  { name: '학교밖청소년', category: 'youth' },
+  { name: '기타(청소년)', category: 'youth' },
   // 성인
-  { name: '강사',       category: 'adult' },
-  { name: '학부모',     category: 'adult' },
-  { name: '시니어',     category: 'adult' },
-  { name: '기관관계자', category: 'adult' },
+  { name: '강사',         category: 'adult' },
+  { name: '학부모',       category: 'adult' },
+  { name: '시니어',       category: 'adult' },
+  { name: '기관 관계자',  category: 'adult' },
+  { name: '기타(성인)',   category: 'adult' },
 ];
 
 const CATEGORY_LABEL: Record<'youth' | 'adult', string> = { youth: '청소년', adult: '성인' };
@@ -108,6 +110,104 @@ export default function AdminGroupsPage() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : '알 수 없는 오류';
       alert(`그룹 추가 실패: ${msg}`);
+    }
+  };
+
+  // 최종 스펙대로 한 번에 정리:
+  //   1) 같은 이름의 그룹이 여러 개면 가장 앞(작은 order)의 것만 남기고 나머지 삭제
+  //   2) 스펙에 있는 그룹의 카테고리를 자동 설정
+  //   3) 스펙에 없는 그룹은 그대로 (관리자가 직접 판단)
+  //   4) 스펙에 있지만 등록되지 않은 그룹은 추가
+  const handleApplyFinalSpec = async () => {
+    const summary: string[] = [];
+
+    // 1. 이름 정규화 키별로 묶기
+    const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
+    const byName: Record<string, StudentGroup[]> = {};
+    groups.forEach(g => {
+      const key = norm(g.name);
+      byName[key] = byName[key] || [];
+      byName[key].push(g);
+    });
+
+    const dupKeep: StudentGroup[] = [];
+    const toDelete: string[] = [];
+    Object.values(byName).forEach(list => {
+      if (list.length === 1) { dupKeep.push(list[0]); return; }
+      // 가장 앞의 것 유지, 나머지 삭제 대상
+      const sorted = [...list].sort((a, b) => (a.order || 0) - (b.order || 0));
+      dupKeep.push(sorted[0]);
+      sorted.slice(1).forEach(g => toDelete.push(g.id));
+    });
+    const duplicatesCount = toDelete.length;
+
+    // 2. 스펙 매핑으로 카테고리 정리
+    const specByName: Record<string, 'youth' | 'adult'> = {};
+    DEFAULT_GROUPS.forEach(d => { specByName[norm(d.name)] = d.category; });
+
+    const toUpdate: { id: string; data: Partial<StudentGroup> }[] = [];
+    dupKeep.forEach(g => {
+      const expected = specByName[norm(g.name)];
+      if (expected && g.category !== expected) {
+        toUpdate.push({ id: g.id, data: { category: expected } });
+      }
+    });
+    const categoryFixCount = toUpdate.length;
+
+    // 3. 누락된 스펙 그룹 추가
+    const existingKeys = new Set(dupKeep.map(g => norm(g.name)));
+    const toCreate = DEFAULT_GROUPS.filter(d => !existingKeys.has(norm(d.name)));
+    const createCount = toCreate.length;
+
+    if (duplicatesCount + categoryFixCount + createCount === 0) {
+      alert('이미 최종 스펙 그대로 정리되어 있습니다');
+      return;
+    }
+
+    const msg = [
+      duplicatesCount > 0 ? `중복 그룹 ${duplicatesCount}개 삭제` : null,
+      categoryFixCount > 0 ? `카테고리 ${categoryFixCount}개 조정` : null,
+      createCount > 0 ? `누락된 ${createCount}개 추가 (${toCreate.map(d => d.name).join(', ')})` : null,
+    ].filter(Boolean).join('\n');
+
+    if (!confirm(`다음 작업을 진행할까요?\n\n${msg}\n\n스펙에 없는 옛 그룹(예: 초등학생 등)은 건드리지 않습니다.`)) return;
+
+    setSeeding(true);
+    try {
+      // 삭제
+      await Promise.all(toDelete.map(id => deleteGroup(id)));
+      summary.push(`${toDelete.length}개 삭제`);
+      // 카테고리 업데이트
+      await Promise.all(toUpdate.map(u => updateGroup(u.id, u.data)));
+      summary.push(`${toUpdate.length}개 카테고리 조정`);
+      // 신규 추가 (스펙 순서대로 order 부여)
+      const remainingMax = Math.max(0, ...dupKeep.map(g => g.order || 0));
+      let base = remainingMax + 1;
+      const created: StudentGroup[] = [];
+      for (const d of toCreate) {
+        const id = await createGroup({ name: d.name, order: base, category: d.category });
+        created.push({ id, name: d.name, order: base, category: d.category } as StudentGroup);
+        base += 1;
+      }
+      summary.push(`${created.length}개 추가`);
+
+      // 로컬 상태 재계산
+      const next = [
+        ...dupKeep
+          .filter(g => !toDelete.includes(g.id))
+          .map(g => {
+            const upd = toUpdate.find(u => u.id === g.id);
+            return upd ? { ...g, ...upd.data } : g;
+          }),
+        ...created,
+      ];
+      setGroups(next);
+      alert(`완료\n• ${summary.join('\n• ')}`);
+    } catch (e) {
+      const m = e instanceof Error ? e.message : '알 수 없는 오류';
+      alert(`작업 중 일부 실패: ${m}\n페이지를 새로고침해 현재 상태를 확인하세요.`);
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -206,6 +306,21 @@ export default function AdminGroupsPage() {
           <p className="text-gray-500 mt-1">총 {groups.length}개 그룹 · 회원 {users.length}명{unassignedCount > 0 && ` · 미지정 ${unassignedCount}명`}</p>
         </div>
         <a href="/admin/courses" className="text-sm text-purple-600 hover:text-purple-700 font-medium">강좌 관리 →</a>
+      </div>
+
+      {/* 한 번에 정리 (중복 합치기 + 카테고리 부여 + 누락 추가) */}
+      <div className="bg-gradient-to-r from-purple-50 to-teal-50 border border-purple-200 rounded-2xl p-5 mb-6 flex items-center gap-4">
+        <div className="flex-grow">
+          <p className="font-semibold text-purple-900 text-sm">최종 스펙대로 한 번에 정리</p>
+          <p className="text-xs text-purple-700 mt-1">중복 그룹 자동 병합 · 청소년/성인 카테고리 자동 부여 · 누락 그룹 자동 추가. 회원들의 group 값은 그대로 유지됩니다.</p>
+        </div>
+        <button
+          onClick={handleApplyFinalSpec}
+          disabled={seeding}
+          className="flex-shrink-0 bg-gradient-to-r from-purple-600 to-teal-600 hover:from-purple-700 hover:to-teal-700 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm transition disabled:from-gray-300 disabled:to-gray-300"
+        >
+          {seeding ? '정리 중...' : '✨ 최종 세팅 적용'}
+        </button>
       </div>
 
       {/* 정리 알림 — 회원이 가진 group 값과 그룹 컬렉션이 안 맞는 경우 */}

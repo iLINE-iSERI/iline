@@ -8,8 +8,8 @@ import { signUpWithEmail } from '@/lib/firebase/auth';
 type Category = 'youth' | 'adult' | '';
 type Gender = 'male' | 'female' | 'unspecified';
 
-const YOUTH_GROUPS = ['초등학교', '중학교', '고등학교', '학교 밖', '기타'] as const;
-const ADULT_GROUPS = ['강사', '학부모', '시니어', '기관관계자', '기타'] as const;
+const YOUTH_GROUPS = ['초등학교', '중학교', '고등학교', '학교밖청소년', '기타(청소년)'] as const;
+const ADULT_GROUPS = ['강사', '학부모', '시니어', '기관 관계자', '기타(성인)'] as const;
 
 function formatPhone(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -51,7 +51,8 @@ export default function SignupPage() {
   const router = useRouter();
 
   const groups = category === 'youth' ? YOUTH_GROUPS : category === 'adult' ? ADULT_GROUPS : [];
-  const isOther = groupChoice === '기타';
+  // 라벨이 "기타", "기타(청소년)", "기타(성인)" 모두 자유 입력 트리거
+  const isOther = groupChoice.startsWith('기타');
   const resolvedGroup = isOther ? groupOther.trim() : groupChoice;
 
   const goToStep2 = () => {
@@ -151,7 +152,7 @@ export default function SignupPage() {
             {category && (
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-2">소속</label>
-                <select value={groupChoice} onChange={(e) => { setGroupChoice(e.target.value); if (e.target.value !== '기타') setGroupOther(''); }} className={inputClass} required>
+                <select value={groupChoice} onChange={(e) => { setGroupChoice(e.target.value); if (!e.target.value.startsWith('기타')) setGroupOther(''); }} className={inputClass} required>
                   <option value="" disabled>선택해주세요</option>
                   {groups.map((g) => <option key={g} value={g}>{g}</option>)}
                 </select>
