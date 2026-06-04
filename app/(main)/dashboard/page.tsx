@@ -101,7 +101,7 @@ function DashboardContent() {
                     <img
                       src={normalizeImageUrl(item.course.thumbnailUrl || '') || getYouTubeThumbnail(item.course.youtubeUrl, 'max') || ''}
                       alt={item.course.title}
-                      className="w-full h-40 object-cover bg-gray-100"
+                      className="w-full h-44 object-contain bg-gray-50"
                       onError={(e) => {
                         const fallback = getYouTubeThumbnail(item.course.youtubeUrl, 'hq');
                         const img = e.target as HTMLImageElement;
