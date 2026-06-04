@@ -104,43 +104,29 @@ function NoticeDetailContent({ id }: { id: string }) {
       </div>
 
       <article className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        {/* 첨부 이미지 — 1개면 단일 큰 이미지, 여러 개면 첫 번째 강조 + 썸네일 strip */}
+        {/* 첨부 이미지 — 카드뉴스 스타일로 전부 풀 너비 세로 배치 */}
         {images.length > 0 && (
-          <div className="bg-gray-50 border-b border-gray-100">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={images[0]}
-              alt={post.title}
-              className="w-full max-h-96 object-contain mx-auto cursor-zoom-in transition hover:opacity-90"
-              onClick={() => setZoomIdx(0)}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-            {images.length > 1 && (
-              <div className="px-3 py-2 flex gap-2 overflow-x-auto">
-                {images.map((url, idx) => (
-                  <button
-                    key={url + idx}
-                    type="button"
-                    onClick={() => setZoomIdx(idx)}
-                    className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-400 transition relative"
-                    title={`이미지 ${idx + 1} / ${images.length}`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={url}
-                      alt={`첨부 ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.3'; }}
-                    />
-                    <span className="absolute bottom-0.5 right-0.5 bg-black/60 text-white text-[9px] font-semibold px-1 rounded">
-                      {idx + 1}
-                    </span>
-                  </button>
-                ))}
+          <div className="bg-gray-50 border-b border-gray-100 divide-y divide-gray-100">
+            {images.map((url, idx) => (
+              <div key={url + idx} className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={url}
+                  alt={`${post.title} ${idx + 1}`}
+                  loading={idx === 0 ? 'eager' : 'lazy'}
+                  className="w-full max-h-[85vh] object-contain mx-auto cursor-zoom-in transition hover:opacity-95"
+                  onClick={() => setZoomIdx(idx)}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+                {images.length > 1 && (
+                  <span className="absolute top-3 left-3 bg-black/60 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                    {idx + 1} / {images.length}
+                  </span>
+                )}
               </div>
-            )}
-            <p className="text-center text-xs text-gray-400 pb-2">
-              이미지를 클릭하면 크게 볼 수 있어요{images.length > 1 ? ' (← → 키로 이동)' : ''}
+            ))}
+            <p className="text-center text-xs text-gray-400 py-2">
+              이미지를 클릭하면 더 크게 볼 수 있어요{images.length > 1 ? ' (라이트박스에서 ← → 키로 이동)' : ''}
             </p>
           </div>
         )}
