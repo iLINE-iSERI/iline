@@ -43,17 +43,17 @@ export default function CourseCard({ course }: CourseCardProps) {
   return (
     <Link href={`/courses/${course.id}`}>
       <div className="card-hover bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer h-full flex flex-col">
-        <div className="relative overflow-hidden bg-gray-50 h-48">
+        <div className="relative overflow-hidden bg-gray-50 aspect-square w-full">
           {src && !errored ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={src}
               alt={course.title}
-              className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+              className="absolute inset-0 w-full h-full object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
               onError={handleError}
             />
           ) : (
-            <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${gradient}`}>
+            <div className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br ${gradient}`}>
               <svg className="w-16 h-16 text-white/70" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>

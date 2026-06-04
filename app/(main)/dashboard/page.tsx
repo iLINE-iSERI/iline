@@ -96,12 +96,12 @@ function DashboardContent() {
               const pct = item.progress && item.progress.totalDuration > 0 ? Math.min(100, Math.round((item.progress.lastPosition / item.progress.totalDuration) * 100)) : 0;
               return (
                 <Link key={item.enrollment.id} href={`/courses/${item.course.id}`} className="bg-white rounded-2xl shadow hover:shadow-lg transition overflow-hidden border border-gray-100">
-                  <div className="relative">
+                  <div className="relative aspect-square w-full bg-gray-50">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={normalizeImageUrl(item.course.thumbnailUrl || '') || getYouTubeThumbnail(item.course.youtubeUrl, 'max') || ''}
                       alt={item.course.title}
-                      className="w-full h-44 object-contain bg-gray-50"
+                      className="absolute inset-0 w-full h-full object-contain p-1"
                       onError={(e) => {
                         const fallback = getYouTubeThumbnail(item.course.youtubeUrl, 'hq');
                         const img = e.target as HTMLImageElement;
