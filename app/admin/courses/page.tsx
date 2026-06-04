@@ -1,14 +1,28 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   getAllCourses, createCourse, updateCourse, deleteCourse,
-  getCategories, createCategory, updateCategory, deleteCategory
+  getCategories, createCategory, updateCategory, deleteCategory,
+  getCourseStats, type CourseStats,
 } from '@/lib/firebase/firestore';
 import { getYouTubeThumbnail, normalizeImageUrl, adjustHex } from '@/lib/utils';
 import { uploadCourseThumbnail } from '@/lib/firebase/storage';
 import CategoryColorPicker from '@/components/admin/CategoryColorPicker';
 import type { Course, Category, CategoryColor } from '@/lib/types';
+
+function StatCard({ label, value, unit, sub }: { label: string; value: number; unit?: string; sub?: string }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4">
+      <div className="text-xs text-gray-500 mb-1">{label}</div>
+      <div className="flex items-baseline gap-1">
+        <span className="text-2xl font-bold text-gray-900">{value.toLocaleString()}</span>
+        {unit && <span className="text-sm text-gray-500">{unit}</span>}
+      </div>
+      {sub && <div className="text-xs text-teal-600 mt-1">{sub}</div>}
+    </div>
+  );
+}
 
 // 옛 colorTheme(이름) → 헥스 매핑 (편집 시 픽커 초기값으로 변환)
 const THEME_TO_HEX: Record<CategoryColor, string> = {
@@ -65,6 +79,30 @@ export default function AdminCoursesPage() {
   });
   const formRef = useRef<HTMLDivElement | null>(null);
   const [thumbUploading, setThumbUploading] = useState(false);
+
+  // 강좌별 통계
+  const [statsExpanded, setStatsExpanded] = useState<string | null>(null);
+  const [statsCache, setStatsCache] = useState<Record<string, CourseStats>>({});
+  const [statsLoading, setStatsLoading] = useState<string | null>(null);
+
+  const handleToggleStats = async (courseId: string) => {
+    if (statsExpanded === courseId) {
+      setStatsExpanded(null);
+      return;
+    }
+    setStatsExpanded(courseId);
+    if (!statsCache[courseId]) {
+      setStatsLoading(courseId);
+      try {
+        const stats = await getCourseStats(courseId);
+        setStatsCache(prev => ({ ...prev, [courseId]: stats }));
+      } catch (e) {
+        console.error('통계 로드 실패:', e);
+      } finally {
+        setStatsLoading(null);
+      }
+    }
+  };
 
   const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -605,8 +643,12 @@ export default function AdminCoursesPage() {
               <tbody>
                 {courses.map(course => {
                   const linked = isCatLinked(course.category);
+                  const expanded = statsExpanded === course.id;
+                  const stats = statsCache[course.id];
+                  const loadingStats = statsLoading === course.id;
                   return (
-                  <tr key={course.id} className={`border-b hover:bg-gray-50 ${!linked ? 'bg-amber-50' : ''}`}>
+                  <Fragment key={course.id}>
+                  <tr className={`border-b hover:bg-gray-50 ${!linked ? 'bg-amber-50' : ''} ${expanded ? 'bg-teal-50/40' : ''}`}>
                     <td className="px-6 py-4">{course.title}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {linked ? (
@@ -623,11 +665,63 @@ export default function AdminCoursesPage() {
                         {course.isPublished ? '공개' : '비공개'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 flex gap-2">
-                      <button onClick={() => handleEdit(course)} className="text-blue-600 hover:text-blue-700 font-semibold text-sm">수정</button>
-                      <button onClick={() => handleDelete(course.id)} className="text-red-600 hover:text-red-700 font-semibold text-sm">삭제</button>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2 items-center">
+                        <button
+                          onClick={() => handleToggleStats(course.id)}
+                          className={`font-semibold text-sm transition ${expanded ? 'text-teal-700' : 'text-teal-600 hover:text-teal-700'}`}
+                        >
+                          📊 통계 {expanded ? '닫기' : '보기'}
+                        </button>
+                        <button onClick={() => handleEdit(course)} className="text-blue-600 hover:text-blue-700 font-semibold text-sm">수정</button>
+                        <button onClick={() => handleDelete(course.id)} className="text-red-600 hover:text-red-700 font-semibold text-sm">삭제</button>
+                      </div>
                     </td>
                   </tr>
+                  {expanded && (
+                    <tr className="border-b bg-teal-50/40">
+                      <td colSpan={4} className="px-6 py-5">
+                        {loadingStats && !stats ? (
+                          <div className="animate-pulse grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                            {[1,2,3,4,5].map(i => <div key={i} className="h-20 bg-gray-200 rounded-lg" />)}
+                          </div>
+                        ) : stats ? (
+                          <div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                              <StatCard label="수강생" value={stats.enrolled} unit="명" />
+                              <StatCard label="완료자" value={stats.completed} unit="명" sub={`${stats.completionRate}% 완료율`} />
+                              <StatCard label="평균 진도" value={stats.avgProgress} unit="%" />
+                              <StatCard label="댓글" value={stats.comments} unit="개" />
+                              <StatCard
+                                label="퀴즈"
+                                value={stats.quizAttempts}
+                                unit="회"
+                                sub={stats.avgQuizScore !== null ? `평균 ${stats.avgQuizScore}점` : '응시 없음'}
+                              />
+                            </div>
+                            <div className="mt-3 flex justify-end">
+                              <button
+                                onClick={async () => {
+                                  setStatsLoading(course.id);
+                                  try {
+                                    const fresh = await getCourseStats(course.id);
+                                    setStatsCache(prev => ({ ...prev, [course.id]: fresh }));
+                                  } finally { setStatsLoading(null); }
+                                }}
+                                disabled={loadingStats}
+                                className="text-xs text-teal-600 hover:text-teal-700 font-medium disabled:text-gray-400"
+                              >
+                                {loadingStats ? '새로고침 중...' : '🔄 새로고침'}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-400">통계를 불러올 수 없습니다.</p>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                   );
                 })}
                 {courses.length === 0 && (

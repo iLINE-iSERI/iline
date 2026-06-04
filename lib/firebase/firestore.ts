@@ -72,6 +72,68 @@ export async function deleteCourse(courseId: string) {
   catch (error) { console.error('강의 삭제 에러:', error); throw error }
 }
 
+// 강좌별 통계 — 관리자가 강좌 관리에서 펼쳐볼 때만 호출
+export interface CourseStats {
+  enrolled: number
+  completed: number
+  completionRate: number   // 0~100
+  avgProgress: number      // 0~100, enrolled 기준 평균 진도율
+  comments: number
+  quizAttempts: number
+  avgQuizScore: number | null  // 자동채점 기준 0~100
+}
+
+export async function getCourseStats(courseId: string): Promise<CourseStats> {
+  try {
+    const [enrollSnap, progressSnap, commentsSnap, attemptsSnap] = await Promise.all([
+      getDocs(query(collection(db, 'enrollments'), where('courseId', '==', courseId))),
+      getDocs(query(collection(db, 'progress'), where('courseId', '==', courseId))),
+      getDocs(query(collection(db, 'courseComments'), where('courseId', '==', courseId))),
+      getDocs(query(collection(db, 'quizAttempts'), where('courseId', '==', courseId))),
+    ])
+
+    const enrolled = enrollSnap.size
+    const progresses = progressSnap.docs.map(d => d.data())
+    const completed = progresses.filter(p => p.completed === true).length
+
+    // 평균 진도율: progress 문서 기준
+    const totalPct = progresses.reduce((sum, p) => {
+      if (p.completed) return sum + 100
+      const dur = (p.totalDuration as number) || 0
+      const pos = (p.lastPosition as number) || 0
+      if (dur > 0) return sum + Math.min(100, (pos / dur) * 100)
+      return sum
+    }, 0)
+    const avgProgress = progresses.length > 0 ? Math.round(totalPct / progresses.length) : 0
+    const completionRate = enrolled > 0 ? Math.round((completed / enrolled) * 100) : 0
+
+    const attempts = attemptsSnap.docs.map(d => d.data())
+    const scored = attempts.filter(a => (a.totalAutoGraded as number) > 0)
+    const avgQuizScore = scored.length > 0
+      ? Math.round(
+          scored.reduce((sum, a) => sum + ((a.score as number) / (a.totalAutoGraded as number)) * 100, 0)
+          / scored.length
+        )
+      : null
+
+    return {
+      enrolled,
+      completed,
+      completionRate,
+      avgProgress,
+      comments: commentsSnap.size,
+      quizAttempts: attempts.length,
+      avgQuizScore,
+    }
+  } catch (error) {
+    console.error('강좌 통계 조회 에러:', error)
+    return {
+      enrolled: 0, completed: 0, completionRate: 0, avgProgress: 0,
+      comments: 0, quizAttempts: 0, avgQuizScore: null,
+    }
+  }
+}
+
 // ===== Categories =====
 export async function getCategories(): Promise<Category[]> {
   try {
