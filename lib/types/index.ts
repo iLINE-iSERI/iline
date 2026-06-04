@@ -102,7 +102,10 @@ export interface QnA {
   [key: string]: any
 }
 
-export type CategoryColor = 'teal' | 'blue' | 'cyan' | 'purple' | 'pink' | 'orange' | 'green' | 'red'
+export type CategoryColor =
+  | 'teal' | 'blue' | 'cyan' | 'purple' | 'pink' | 'orange' | 'green' | 'red'
+  | 'yellow' | 'lime' | 'emerald' | 'sky' | 'indigo' | 'violet' | 'fuchsia' | 'rose'
+  | 'amber' | 'slate'
 
 export interface Category {
   id: string

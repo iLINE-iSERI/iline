@@ -10,14 +10,24 @@ import { uploadCourseThumbnail } from '@/lib/firebase/storage';
 import type { Course, Category, CategoryColor } from '@/lib/types';
 
 const COLOR_OPTIONS: { value: CategoryColor; label: string; preview: string }[] = [
-  { value: 'teal',   label: '청록', preview: 'from-teal-500 to-teal-700' },
-  { value: 'blue',   label: '파랑', preview: 'from-blue-500 to-blue-700' },
-  { value: 'cyan',   label: '하늘', preview: 'from-cyan-500 to-cyan-700' },
-  { value: 'purple', label: '보라', preview: 'from-purple-500 to-purple-700' },
-  { value: 'pink',   label: '분홍', preview: 'from-pink-500 to-pink-700' },
-  { value: 'orange', label: '주황', preview: 'from-orange-500 to-orange-700' },
-  { value: 'green',  label: '초록', preview: 'from-green-500 to-green-700' },
-  { value: 'red',    label: '빨강', preview: 'from-red-500 to-red-700' },
+  { value: 'teal',    label: '청록',   preview: 'from-teal-500 to-teal-700' },
+  { value: 'emerald', label: '에메랄드', preview: 'from-emerald-500 to-emerald-700' },
+  { value: 'green',   label: '초록',   preview: 'from-green-500 to-green-700' },
+  { value: 'lime',    label: '라임',   preview: 'from-lime-500 to-lime-700' },
+  { value: 'yellow',  label: '노랑',   preview: 'from-yellow-400 to-yellow-600' },
+  { value: 'amber',   label: '호박',   preview: 'from-amber-500 to-amber-700' },
+  { value: 'orange',  label: '주황',   preview: 'from-orange-500 to-orange-700' },
+  { value: 'red',     label: '빨강',   preview: 'from-red-500 to-red-700' },
+  { value: 'rose',    label: '로즈',   preview: 'from-rose-500 to-rose-700' },
+  { value: 'pink',    label: '분홍',   preview: 'from-pink-500 to-pink-700' },
+  { value: 'fuchsia', label: '진분홍', preview: 'from-fuchsia-500 to-fuchsia-700' },
+  { value: 'purple',  label: '보라',   preview: 'from-purple-500 to-purple-700' },
+  { value: 'violet',  label: '바이올렛', preview: 'from-violet-500 to-violet-700' },
+  { value: 'indigo',  label: '인디고', preview: 'from-indigo-500 to-indigo-700' },
+  { value: 'blue',    label: '파랑',   preview: 'from-blue-500 to-blue-700' },
+  { value: 'sky',     label: '스카이', preview: 'from-sky-500 to-sky-700' },
+  { value: 'cyan',    label: '하늘',   preview: 'from-cyan-500 to-cyan-700' },
+  { value: 'slate',   label: '슬레이트', preview: 'from-slate-500 to-slate-700' },
 ];
 
 export default function AdminCoursesPage() {
