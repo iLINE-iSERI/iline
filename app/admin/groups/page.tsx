@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { getGroups, createGroup, updateGroup, deleteGroup, getAllUsers } from '@/lib/firebase/firestore';
+import { getGroups, createGroup, updateGroup, deleteGroup, getAllUsers, updateUserProfile } from '@/lib/firebase/firestore';
 import type { StudentGroup, UserProfile } from '@/lib/types';
 
 // 회원가입 폼과 동일한 최종 매핑 (10개)
@@ -21,6 +21,15 @@ const DEFAULT_GROUPS: { name: string; category: 'youth' | 'adult' }[] = [
 ];
 
 const CATEGORY_LABEL: Record<'youth' | 'adult', string> = { youth: '청소년', adult: '성인' };
+
+// 옛 라벨 → 새 라벨 통일 매핑
+// 키는 정규화(공백 제거, 소문자) 기준이지만 실제 값은 화면 표시용 원본 사용
+const RENAME_MAP: Record<string, string> = {
+  '학교 밖':     '학교밖청소년',
+  '학교밖':       '학교밖청소년',
+  '기관관계자':   '기관 관계자',
+  '기관관계자(성인)': '기관 관계자',
+};
 
 export default function AdminGroupsPage() {
   const [groups, setGroups] = useState<StudentGroup[]>([]);
@@ -114,17 +123,45 @@ export default function AdminGroupsPage() {
   };
 
   // 최종 스펙대로 한 번에 정리:
+  //   0) 옛 라벨 통일 (학교 밖 → 학교밖청소년, 기관관계자 → 기관 관계자)
+  //      - 그룹 문서 이름 변경
+  //      - 그 이름을 갖고 있던 회원들의 group 필드도 같이 변경
   //   1) 같은 이름의 그룹이 여러 개면 가장 앞(작은 order)의 것만 남기고 나머지 삭제
   //   2) 스펙에 있는 그룹의 카테고리를 자동 설정
   //   3) 스펙에 없는 그룹은 그대로 (관리자가 직접 판단)
   //   4) 스펙에 있지만 등록되지 않은 그룹은 추가
   const handleApplyFinalSpec = async () => {
     const summary: string[] = [];
-
-    // 1. 이름 정규화 키별로 묶기
     const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
-    const byName: Record<string, StudentGroup[]> = {};
+
+    // 0. 라벨 통일 — 그룹 문서 + 회원 group 필드 동시에
+    const groupRenames: { id: string; from: string; to: string }[] = [];
     groups.forEach(g => {
+      const target = RENAME_MAP[g.name] || RENAME_MAP[g.name.trim()];
+      if (target && target !== g.name) {
+        groupRenames.push({ id: g.id, from: g.name, to: target });
+      }
+    });
+
+    const userRenames: { uid: string; from: string; to: string }[] = [];
+    users.forEach(u => {
+      const cur = (u.group || '').trim();
+      if (!cur) return;
+      const target = RENAME_MAP[cur];
+      if (target && target !== cur) {
+        userRenames.push({ uid: u.uid, from: cur, to: target });
+      }
+    });
+
+    // 위 0 단계가 끝난 후 사용할 "효과적인" 그룹 리스트
+    const effectiveGroups: StudentGroup[] = groups.map(g => {
+      const r = groupRenames.find(x => x.id === g.id);
+      return r ? { ...g, name: r.to } : g;
+    });
+
+    // 1. 이름 정규화 키별로 묶기 (rename 적용 후 기준)
+    const byName: Record<string, StudentGroup[]> = {};
+    effectiveGroups.forEach(g => {
       const key = norm(g.name);
       byName[key] = byName[key] || [];
       byName[key].push(g);
@@ -159,12 +196,21 @@ export default function AdminGroupsPage() {
     const toCreate = DEFAULT_GROUPS.filter(d => !existingKeys.has(norm(d.name)));
     const createCount = toCreate.length;
 
-    if (duplicatesCount + categoryFixCount + createCount === 0) {
+    if (groupRenames.length + userRenames.length + duplicatesCount + categoryFixCount + createCount === 0) {
       alert('이미 최종 스펙 그대로 정리되어 있습니다');
       return;
     }
 
+    const renameSummary = groupRenames.length > 0
+      ? `그룹 이름 통일 ${groupRenames.length}건 (${groupRenames.map(r => `${r.from}→${r.to}`).join(', ')})`
+      : null;
+    const userRenameSummary = userRenames.length > 0
+      ? `회원 ${userRenames.length}명의 group 값 자동 변경`
+      : null;
+
     const msg = [
+      renameSummary,
+      userRenameSummary,
       duplicatesCount > 0 ? `중복 그룹 ${duplicatesCount}개 삭제` : null,
       categoryFixCount > 0 ? `카테고리 ${categoryFixCount}개 조정` : null,
       createCount > 0 ? `누락된 ${createCount}개 추가 (${toCreate.map(d => d.name).join(', ')})` : null,
@@ -174,13 +220,31 @@ export default function AdminGroupsPage() {
 
     setSeeding(true);
     try {
-      // 삭제
+      // 0. 이름 통일 — 그룹 + 회원 동시
+      await Promise.all([
+        ...groupRenames.map(r => updateGroup(r.id, { name: r.to })),
+        ...userRenames.map(r => updateUserProfile(r.uid, { group: r.to })),
+      ]);
+      if (groupRenames.length) summary.push(`그룹 이름 ${groupRenames.length}건 통일`);
+      if (userRenames.length) summary.push(`회원 ${userRenames.length}명 group 자동 변경`);
+
+      // 로컬 users 즉시 반영
+      if (userRenames.length) {
+        setUsers(prev => prev.map(u => {
+          const r = userRenames.find(x => x.uid === u.uid);
+          return r ? { ...u, group: r.to } : u;
+        }));
+      }
+
+      // 1. 중복 삭제
       await Promise.all(toDelete.map(id => deleteGroup(id)));
-      summary.push(`${toDelete.length}개 삭제`);
-      // 카테고리 업데이트
+      if (toDelete.length) summary.push(`중복 ${toDelete.length}개 삭제`);
+
+      // 2. 카테고리 업데이트
       await Promise.all(toUpdate.map(u => updateGroup(u.id, u.data)));
-      summary.push(`${toUpdate.length}개 카테고리 조정`);
-      // 신규 추가 (스펙 순서대로 order 부여)
+      if (toUpdate.length) summary.push(`카테고리 ${toUpdate.length}개 조정`);
+
+      // 3. 신규 추가 (스펙 순서대로 order 부여)
       const remainingMax = Math.max(0, ...dupKeep.map(g => g.order || 0));
       let base = remainingMax + 1;
       const created: StudentGroup[] = [];
@@ -189,15 +253,19 @@ export default function AdminGroupsPage() {
         created.push({ id, name: d.name, order: base, category: d.category } as StudentGroup);
         base += 1;
       }
-      summary.push(`${created.length}개 추가`);
+      if (created.length) summary.push(`${created.length}개 신규 추가`);
 
-      // 로컬 상태 재계산
+      // 로컬 groups 재계산 (rename + delete + update + create 모두 반영)
       const next = [
         ...dupKeep
           .filter(g => !toDelete.includes(g.id))
           .map(g => {
-            const upd = toUpdate.find(u => u.id === g.id);
-            return upd ? { ...g, ...upd.data } : g;
+            // rename 적용
+            const r = groupRenames.find(x => x.id === g.id);
+            const base = r ? { ...g, name: r.to } : g;
+            // category 업데이트 적용
+            const upd = toUpdate.find(u => u.id === base.id);
+            return upd ? { ...base, ...upd.data } : base;
           }),
         ...created,
       ];
@@ -308,11 +376,11 @@ export default function AdminGroupsPage() {
         <a href="/admin/courses" className="text-sm text-purple-600 hover:text-purple-700 font-medium">강좌 관리 →</a>
       </div>
 
-      {/* 한 번에 정리 (중복 합치기 + 카테고리 부여 + 누락 추가) */}
+      {/* 한 번에 정리 (이름 통일 + 중복 합치기 + 카테고리 부여 + 누락 추가) */}
       <div className="bg-gradient-to-r from-purple-50 to-teal-50 border border-purple-200 rounded-2xl p-5 mb-6 flex items-center gap-4">
         <div className="flex-grow">
           <p className="font-semibold text-purple-900 text-sm">최종 스펙대로 한 번에 정리</p>
-          <p className="text-xs text-purple-700 mt-1">중복 그룹 자동 병합 · 청소년/성인 카테고리 자동 부여 · 누락 그룹 자동 추가. 회원들의 group 값은 그대로 유지됩니다.</p>
+          <p className="text-xs text-purple-700 mt-1">옛 이름 통일(학교 밖→학교밖청소년, 기관관계자→기관 관계자) · 회원 group 값 자동 변경 · 중복 자동 병합 · 카테고리 자동 부여 · 누락 그룹 자동 추가</p>
         </div>
         <button
           onClick={handleApplyFinalSpec}
