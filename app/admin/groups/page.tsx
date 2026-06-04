@@ -434,7 +434,7 @@ export default function AdminGroupsPage() {
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
           <p className="font-semibold text-amber-900 text-sm mb-1">⚠ 정리 필요한 그룹 값</p>
           <p className="text-xs text-amber-700 mb-2">
-            아래 그룹명은 회원 일부가 가지고 있지만 그룹 컬렉션에는 등록되어 있지 않습니다. 그룹을 추가하거나 회원관리에서 해당 회원의 그룹을 다시 지정하세요.
+            아래 그룹명은 회원 일부가 가지고 있지만 그룹 컬렉션에는 등록되어 있지 않습니다. <b>+ 등록</b>으로 정식 그룹화하거나, <b>✕ 비우기</b>로 해당 회원의 group 값을 비우세요.
           </p>
           <div className="flex flex-wrap gap-2">
             {orphanEntries.map(([name, count]) => (
@@ -452,8 +452,30 @@ export default function AdminGroupsPage() {
                     }
                   }}
                   className="text-amber-700 hover:text-amber-900 font-semibold ml-1"
+                  title="이 이름을 정식 그룹으로 추가"
                 >
                   + 등록
+                </button>
+                <button
+                  onClick={async () => {
+                    const targets = users.filter(u => (u.group || '').trim() === name);
+                    if (targets.length === 0) return;
+                    const namesList = targets.map(u => u.name || u.email).join(', ');
+                    if (!confirm(`"${name}" 값을 가진 회원 ${targets.length}명의 group을 비울까요?\n\n대상: ${namesList}\n\n회원은 삭제되지 않으며 회원관리에서 다시 그룹을 지정할 수 있습니다.`)) return;
+                    try {
+                      await Promise.all(targets.map(u => updateUserProfile(u.uid, { group: '' })));
+                      setUsers(prev => prev.map(u =>
+                        targets.find(t => t.uid === u.uid) ? { ...u, group: '' } : u
+                      ));
+                    } catch (e) {
+                      const m = e instanceof Error ? e.message : '알 수 없는 오류';
+                      alert(`비우기 실패: ${m}`);
+                    }
+                  }}
+                  className="text-red-700 hover:text-red-900 font-semibold ml-1"
+                  title="이 group 값을 가진 회원의 group 필드 비우기"
+                >
+                  ✕ 비우기
                 </button>
               </span>
             ))}
