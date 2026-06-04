@@ -9,7 +9,7 @@ import { uploadPostImage } from '@/lib/firebase/storage';
 import RichTextEditor from '@/components/editor/RichTextEditor';
 
 interface Props { params: { id: string } }
-const MAX_ATTACHMENTS = 5;
+const MAX_ATTACHMENTS = 10;
 
 function EditNoticeContent({ id }: { id: string }) {
   const { userProfile, loading: authLoading } = useAuth();

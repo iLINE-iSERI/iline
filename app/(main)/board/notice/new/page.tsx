@@ -8,7 +8,7 @@ import { createPost } from '@/lib/firebase/firestore';
 import { uploadPostImage } from '@/lib/firebase/storage';
 import RichTextEditor from '@/components/editor/RichTextEditor';
 
-const MAX_ATTACHMENTS = 5;
+const MAX_ATTACHMENTS = 10;
 
 function NewNoticeContent() {
   const { user, userProfile, loading: authLoading } = useAuth();
