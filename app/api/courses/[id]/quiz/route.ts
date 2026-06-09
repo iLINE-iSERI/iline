@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { YoutubeTranscript } from 'youtube-transcript'
 
 export const runtime = 'nodejs'
@@ -12,30 +12,31 @@ interface RequestBody {
 }
 
 // 응답 강제 스키마 — Gemini가 이 스키마에 맞는 JSON만 반환하도록 강제
+// SDK 버전 호환을 위해 plain 문자열 type 사용 (SchemaType enum 임포트 안 함)
 const QUIZ_SCHEMA = {
-  type: SchemaType.OBJECT,
+  type: 'object',
   properties: {
     questions: {
-      type: SchemaType.ARRAY,
+      type: 'array',
       items: {
-        type: SchemaType.OBJECT,
+        type: 'object',
         properties: {
-          id: { type: SchemaType.STRING },
-          type: { type: SchemaType.STRING, enum: ['multiple-choice', 'ox', 'short-answer'] },
-          question: { type: SchemaType.STRING },
+          id: { type: 'string' },
+          type: { type: 'string', enum: ['multiple-choice', 'ox', 'short-answer'] },
+          question: { type: 'string' },
           choices: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING },
+            type: 'array',
+            items: { type: 'string' },
           },
-          correctAnswer: { type: SchemaType.STRING },
-          explanation: { type: SchemaType.STRING },
+          correctAnswer: { type: 'string' },
+          explanation: { type: 'string' },
         },
         required: ['id', 'type', 'question', 'correctAnswer'],
       },
     },
   },
   required: ['questions'],
-}
+} as const
 
 function buildPrompt(title: string, description: string, transcript: string) {
   return `당신은 교육용 퀴즈 출제자입니다. 아래 강좌 내용을 바탕으로 학습 이해도를 확인할 수 있는 퀴즈 3문제를 만드세요.
@@ -66,11 +67,12 @@ async function generateOnce(apiKey: string, prompt: string) {
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.0-flash',
+    // 타입 시그니처가 SDK 버전에 따라 다르므로 any로 캐스팅 (런타임에 Gemini가 검증)
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: QUIZ_SCHEMA,
       temperature: 0.7,
-    },
+    } as any,
   })
   const result = await model.generateContent(prompt)
   const text = result.response.text()
