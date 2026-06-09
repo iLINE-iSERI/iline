@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { YoutubeTranscript } from 'youtube-transcript'
 
 export const runtime = 'nodejs'
@@ -11,8 +10,6 @@ interface RequestBody {
   youtubeUrl?: string
 }
 
-// 응답 강제 스키마 — Gemini가 이 스키마에 맞는 JSON만 반환하도록 강제
-// SDK 버전 호환을 위해 plain 문자열 type 사용 (SchemaType enum 임포트 안 함)
 const QUIZ_SCHEMA = {
   type: 'object',
   properties: {
@@ -24,10 +21,7 @@ const QUIZ_SCHEMA = {
           id: { type: 'string' },
           type: { type: 'string', enum: ['multiple-choice', 'ox', 'short-answer'] },
           question: { type: 'string' },
-          choices: {
-            type: 'array',
-            items: { type: 'string' },
-          },
+          choices: { type: 'array', items: { type: 'string' } },
           correctAnswer: { type: 'string' },
           explanation: { type: 'string' },
         },
@@ -36,7 +30,18 @@ const QUIZ_SCHEMA = {
     },
   },
   required: ['questions'],
-} as const
+}
+
+// 폴백 체인 — 최신부터 stable 순으로
+const MODEL_CHAIN = [
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-001',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-002',
+  'gemini-1.5-pro-latest',
+  'gemini-1.5-pro',
+]
 
 function buildPrompt(title: string, description: string, transcript: string) {
   return `당신은 교육용 퀴즈 출제자입니다. 아래 강좌 내용을 바탕으로 학습 이해도를 확인할 수 있는 퀴즈 3문제를 만드세요.
@@ -62,29 +67,34 @@ correctAnswer 규칙:
 - short-answer: 모범답안 (한 문장), choices는 빈 배열 또는 생략`
 }
 
-// 모델 폴백 체인 — 첫 번째부터 시도, 모델 미지원/미발견 에러면 다음 모델로
-// @google/generative-ai 0.24.x SDK가 v1 endpoint를 쓰므로 2.0/2.5 모델은
-// 환경에 따라 못 부를 수 있음. 1.5-flash는 모든 paid tier에서 보장됨.
-const MODEL_CHAIN = [
-  'gemini-1.5-flash-latest',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro-latest',
-]
-
-// Gemini 호출 + 파싱 (1번 시도)
-async function generateOnce(apiKey: string, prompt: string, modelName: string) {
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    // 타입 시그니처가 SDK 버전에 따라 다르므로 any로 캐스팅 (런타임에 Gemini가 검증)
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: QUIZ_SCHEMA,
-      temperature: 0.7,
-    } as any,
+// 직접 REST 호출 — SDK 의존성 없음
+async function callGeminiRest(apiKey: string, modelName: string, prompt: string) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: QUIZ_SCHEMA,
+        temperature: 0.7,
+      },
+    }),
   })
-  const result = await model.generateContent(prompt)
-  const text = result.response.text()
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    // Gemini 에러 응답: { error: { code, message, status } }
+    let parsed: any = null
+    try { parsed = JSON.parse(text) } catch {}
+    const apiMsg = parsed?.error?.message || text || `HTTP ${res.status}`
+    throw new Error(`[${res.status}] ${apiMsg}`)
+  }
+
+  const data = await res.json()
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!text) throw new Error('Gemini 응답에 텍스트가 없습니다')
   const parsed = JSON.parse(text)
   if (!Array.isArray(parsed?.questions) || parsed.questions.length === 0) {
     throw new Error('퀴즈 questions 배열이 비어 있음')
@@ -92,26 +102,32 @@ async function generateOnce(apiKey: string, prompt: string, modelName: string) {
   return parsed.questions
 }
 
-// 모델 폴백 체인을 순회하며 시도. "모델 없음" 에러는 다음 모델로, 그 외 에러는 그대로 throw
-async function generateWithFallback(apiKey: string, prompt: string): Promise<{ questions: unknown[]; modelUsed: string }> {
+// 모델 체인 폴백 — "모델 없음" 에러만 다음으로 넘어감
+async function generateWithFallback(apiKey: string, prompt: string): Promise<{ questions: unknown[]; modelUsed: string; triedModels: string[] }> {
+  const tried: string[] = []
   let lastError: unknown = null
   for (const modelName of MODEL_CHAIN) {
+    tried.push(modelName)
     try {
-      const questions = await generateOnce(apiKey, prompt, modelName)
-      return { questions, modelUsed: modelName }
+      const questions = await callGeminiRest(apiKey, modelName, prompt)
+      return { questions, modelUsed: modelName, triedModels: tried }
     } catch (e) {
       const m = e instanceof Error ? e.message : String(e)
-      // 모델 미지원/미발견이면 다음 모델로
-      if (/not.?found|404|unsupported|invalid.?model|model.*not/i.test(m.toLowerCase())) {
-        console.warn(`[quiz] 모델 ${modelName} 미지원, 다음 모델 시도:`, m)
-        lastError = e
+      console.warn(`[quiz] 모델 ${modelName} 실패:`, m)
+      lastError = e
+      // 404 / 모델 미지원 / NOT_FOUND 면 다음 모델로
+      if (/404|not.?found|unsupported|invalid.?model|is not supported/i.test(m)) {
         continue
       }
-      // 다른 종류의 에러면 폴백 시도 안 하고 그대로 throw
+      // 429 (쿼터)는 다른 모델도 마찬가지일 가능성 — 그만 시도
+      if (/429|quota|rate.?limit|resource_exhausted/i.test(m)) {
+        throw e
+      }
+      // 그 외(인증/타임아웃/JSON) — 같은 카테고리로 throw
       throw e
     }
   }
-  throw lastError || new Error('모든 폴백 모델이 사용 불가합니다')
+  throw lastError || new Error('모든 모델이 사용 불가능합니다')
 }
 
 export async function POST(
@@ -138,7 +154,6 @@ export async function POST(
     return NextResponse.json({ error: '강좌 정보가 부족합니다' }, { status: 400 })
   }
 
-  // YouTube 자막 추출 시도 (실패해도 계속 진행)
   let transcript = ''
   let transcriptError = ''
   if (youtubeUrl) {
@@ -154,18 +169,18 @@ export async function POST(
 
   const prompt = buildPrompt(title, description, transcript)
 
-  // 1차 시도 + 실패 시 1회 자동 재시도 (모델 폴백 체인 내장)
   let lastError: unknown = null
-  let modelUsed = ''
+  let triedModels: string[] = []
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const { questions, modelUsed: m } = await generateWithFallback(apiKey, prompt)
-      modelUsed = m
+      const { questions, modelUsed, triedModels: tried } = await generateWithFallback(apiKey, prompt)
+      triedModels = tried
       return NextResponse.json({
         questions,
         meta: {
           attempt,
-          modelUsed: m,
+          modelUsed,
+          triedModels: tried,
           transcriptUsed: transcript.length > 0,
           transcriptError: transcriptError || undefined,
         },
@@ -178,10 +193,7 @@ export async function POST(
       }
     }
   }
-  // 디버그 로그용
-  if (modelUsed) console.error('[quiz] 마지막 시도 모델:', modelUsed)
 
-  // 두 번 다 실패한 경우 — 에러 분류해서 명확한 메시지 전달
   const errMsg = lastError instanceof Error ? lastError.message : String(lastError)
   const detailed = classifyError(errMsg)
 
@@ -190,6 +202,7 @@ export async function POST(
       error: detailed.userMessage,
       detail: errMsg,
       kind: detailed.kind,
+      triedModels,
       transcriptError: transcriptError || undefined,
     },
     { status: detailed.status }
@@ -198,57 +211,39 @@ export async function POST(
 
 function classifyError(msg: string): { kind: string; userMessage: string; status: number } {
   const lower = msg.toLowerCase()
-  // 쿼터/레이트리밋
   if (/429|resource_exhausted|quota|rate.?limit/i.test(msg)) {
     return {
       kind: 'rate_limit',
-      userMessage: 'Gemini API 사용 한도(쿼터)에 도달했습니다. 잠시 후 다시 시도해주세요. (분당/일별 무료 요청 한도 초과)',
+      userMessage: 'Gemini API 사용 한도(쿼터)에 도달했습니다. 잠시 후 다시 시도해주세요.',
       status: 429,
     }
   }
-  // API 키 문제
-  if (/api_key|api key|permission_denied|403|unauthorized|401/i.test(lower)) {
+  if (/api_key|api key|permission_denied|403|unauthorized|401|invalid.?key/i.test(lower)) {
     return {
       kind: 'auth',
-      userMessage: 'Gemini API 키가 유효하지 않습니다. GEMINI_API_KEY를 확인하세요.',
+      userMessage: 'Gemini API 키가 유효하지 않거나 권한이 없습니다. Google Cloud에서 키와 결제 계정 연결을 확인하세요.',
       status: 401,
     }
   }
-  // 모델 미존재
-  if (/not.?found|404|model/i.test(lower) && /not/i.test(lower)) {
+  if (/404|not.?found|unsupported|invalid.?model|is not supported/i.test(lower)) {
     return {
       kind: 'model_not_found',
-      userMessage: 'Gemini 모델 이름이 잘못되었습니다. 코드를 점검하세요.',
+      userMessage: '모든 Gemini 모델이 이 API 키로 호출 불가능합니다. API 키의 프로젝트가 Generative Language API를 활성화했는지 확인하세요.',
       status: 502,
     }
   }
-  // 토큰/컨텍스트 초과
   if (/token|context.?length|input.?too.?long/i.test(lower)) {
-    return {
-      kind: 'token_limit',
-      userMessage: '강좌 자료가 너무 길어 Gemini 컨텍스트 한도를 넘었습니다.',
-      status: 413,
-    }
+    return { kind: 'token_limit', userMessage: '강좌 자료가 너무 길어 Gemini 컨텍스트 한도를 넘었습니다.', status: 413 }
   }
-  // JSON 파싱 실패
   if (/json|unexpected.?token|parse/i.test(lower)) {
-    return {
-      kind: 'parse_error',
-      userMessage: 'AI 응답을 파싱하지 못했습니다. 다시 시도해주세요.',
-      status: 502,
-    }
+    return { kind: 'parse_error', userMessage: 'AI 응답을 파싱하지 못했습니다. 다시 시도해주세요.', status: 502 }
   }
-  // 타임아웃
   if (/timeout|aborted/i.test(lower)) {
-    return {
-      kind: 'timeout',
-      userMessage: '응답 시간 초과. 잠시 후 다시 시도해주세요.',
-      status: 504,
-    }
+    return { kind: 'timeout', userMessage: '응답 시간 초과. 잠시 후 다시 시도해주세요.', status: 504 }
   }
   return {
     kind: 'unknown',
-    userMessage: `퀴즈 생성 실패: ${msg.slice(0, 200)}`,
+    userMessage: `퀴즈 생성 실패: ${msg.slice(0, 300)}`,
     status: 500,
   }
 }
