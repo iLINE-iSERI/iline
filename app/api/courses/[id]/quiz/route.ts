@@ -102,8 +102,27 @@ async function callGeminiRest(apiKey: string, modelName: string, prompt: string)
   return parsed.questions
 }
 
+// 사용 가능한 모델 목록 조회 — 진단용
+async function listAvailableModels(apiKey: string): Promise<{ models: string[]; raw: string }> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+  const res = await fetch(url)
+  const text = await res.text()
+  if (!res.ok) {
+    return { models: [], raw: `[${res.status}] ${text}` }
+  }
+  try {
+    const data = JSON.parse(text)
+    const names: string[] = (data?.models || [])
+      .filter((m: any) => (m.supportedGenerationMethods || []).includes('generateContent'))
+      .map((m: any) => (m.name as string).replace(/^models\//, ''))
+    return { models: names, raw: `${names.length}개 모델 발견` }
+  } catch {
+    return { models: [], raw: text.slice(0, 500) }
+  }
+}
+
 // 모델 체인 폴백 — "모델 없음" 에러만 다음으로 넘어감
-async function generateWithFallback(apiKey: string, prompt: string): Promise<{ questions: unknown[]; modelUsed: string; triedModels: string[] }> {
+async function generateWithFallback(apiKey: string, prompt: string): Promise<{ questions: unknown[]; modelUsed: string; triedModels: string[]; availableModels?: string[] }> {
   const tried: string[] = []
   let lastError: unknown = null
   for (const modelName of MODEL_CHAIN) {
@@ -127,7 +146,34 @@ async function generateWithFallback(apiKey: string, prompt: string): Promise<{ q
       throw e
     }
   }
-  throw lastError || new Error('모든 모델이 사용 불가능합니다')
+
+  // 모든 사전 정의 모델이 실패 → 사용 가능 모델 목록 조회해서 첫 generateContent 모델 시도
+  console.warn('[quiz] 사전 정의 모델 모두 실패, 사용 가능 모델 조회 중...')
+  const { models: available, raw: listRaw } = await listAvailableModels(apiKey)
+  console.warn('[quiz] 사용 가능 모델:', available.length > 0 ? available.join(', ') : `(없음: ${listRaw})`)
+
+  for (const modelName of available) {
+    if (tried.includes(modelName)) continue
+    if (!modelName.includes('flash') && !modelName.includes('pro') && !modelName.includes('gemini')) continue
+    tried.push(modelName)
+    try {
+      const questions = await callGeminiRest(apiKey, modelName, prompt)
+      return { questions, modelUsed: modelName, triedModels: tried, availableModels: available }
+    } catch (e) {
+      const m = e instanceof Error ? e.message : String(e)
+      console.warn(`[quiz] 동적 모델 ${modelName} 실패:`, m)
+      lastError = e
+      if (/404|not.?found|unsupported/i.test(m)) continue
+      throw e
+    }
+  }
+
+  // 그래도 안 되면 진단 정보를 에러에 첨부
+  const diagMsg = available.length > 0
+    ? `사용 가능 모델은 있는데 모두 거부됨: ${available.slice(0, 5).join(', ')}`
+    : `사용 가능 모델 조회 실패: ${listRaw}`
+  const original = lastError instanceof Error ? lastError.message : String(lastError)
+  throw new Error(`${original}\n[진단] ${diagMsg}`)
 }
 
 export async function POST(
@@ -171,16 +217,19 @@ export async function POST(
 
   let lastError: unknown = null
   let triedModels: string[] = []
+  let availableModels: string[] | undefined
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const { questions, modelUsed, triedModels: tried } = await generateWithFallback(apiKey, prompt)
-      triedModels = tried
+      const result = await generateWithFallback(apiKey, prompt)
+      triedModels = result.triedModels
+      availableModels = result.availableModels
       return NextResponse.json({
-        questions,
+        questions: result.questions,
         meta: {
           attempt,
-          modelUsed,
-          triedModels: tried,
+          modelUsed: result.modelUsed,
+          triedModels: result.triedModels,
+          availableModels: result.availableModels,
           transcriptUsed: transcript.length > 0,
           transcriptError: transcriptError || undefined,
         },
@@ -194,6 +243,14 @@ export async function POST(
     }
   }
 
+  // 최종 실패 시 사용 가능 모델 목록도 가져와서 진단 정보 첨부
+  if (!availableModels) {
+    try {
+      const list = await listAvailableModels(apiKey)
+      availableModels = list.models
+    } catch {}
+  }
+
   const errMsg = lastError instanceof Error ? lastError.message : String(lastError)
   const detailed = classifyError(errMsg)
 
@@ -203,6 +260,7 @@ export async function POST(
       detail: errMsg,
       kind: detailed.kind,
       triedModels,
+      availableModels,
       transcriptError: transcriptError || undefined,
     },
     { status: detailed.status }

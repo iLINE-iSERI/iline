@@ -184,7 +184,11 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
         const baseMsg = data?.error || '퀴즈 생성 실패';
         const adminDetail = isAdmin && data?.detail ? `\n[관리자 상세] ${data.detail}` : '';
         const adminKind = isAdmin && data?.kind ? `\n[분류] ${data.kind}` : '';
-        throw new Error(baseMsg + adminDetail + adminKind);
+        const adminTried = isAdmin && Array.isArray(data?.triedModels) && data.triedModels.length > 0
+          ? `\n[시도한 모델] ${data.triedModels.join(', ')}` : '';
+        const adminAvailable = isAdmin && Array.isArray(data?.availableModels)
+          ? `\n[이 키로 가능한 모델] ${data.availableModels.length > 0 ? data.availableModels.slice(0, 10).join(', ') : '(없음)'}` : '';
+        throw new Error(baseMsg + adminDetail + adminKind + adminTried + adminAvailable);
       }
       setQuizQuestions(data.questions);
     } catch (e) {
