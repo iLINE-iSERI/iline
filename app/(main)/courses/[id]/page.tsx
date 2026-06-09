@@ -179,7 +179,13 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || '퀴즈 생성 실패');
+      if (!res.ok) {
+        // 관리자는 detail까지 표시해서 진단 가능
+        const baseMsg = data?.error || '퀴즈 생성 실패';
+        const adminDetail = isAdmin && data?.detail ? `\n[관리자 상세] ${data.detail}` : '';
+        const adminKind = isAdmin && data?.kind ? `\n[분류] ${data.kind}` : '';
+        throw new Error(baseMsg + adminDetail + adminKind);
+      }
       setQuizQuestions(data.questions);
     } catch (e) {
       setQuizError(e instanceof Error ? e.message : '퀴즈 생성 실패');
@@ -408,7 +414,7 @@ function CourseDetailContent({ courseId }: { courseId: string }) {
             <p className="text-sm text-gray-500 mb-5">강좌 내용을 잘 이해했는지 AI가 만든 퀴즈로 확인해보세요</p>
 
             {quizError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+              <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600 whitespace-pre-wrap">
                 {quizError}
               </div>
             )}
