@@ -62,11 +62,20 @@ correctAnswer 규칙:
 - short-answer: 모범답안 (한 문장), choices는 빈 배열 또는 생략`
 }
 
+// 모델 폴백 체인 — 첫 번째부터 시도, 모델 미지원/미발견 에러면 다음 모델로
+// @google/generative-ai 0.24.x SDK가 v1 endpoint를 쓰므로 2.0/2.5 모델은
+// 환경에 따라 못 부를 수 있음. 1.5-flash는 모든 paid tier에서 보장됨.
+const MODEL_CHAIN = [
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro-latest',
+]
+
 // Gemini 호출 + 파싱 (1번 시도)
-async function generateOnce(apiKey: string, prompt: string) {
+async function generateOnce(apiKey: string, prompt: string, modelName: string) {
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: modelName,
     // 타입 시그니처가 SDK 버전에 따라 다르므로 any로 캐스팅 (런타임에 Gemini가 검증)
     generationConfig: {
       responseMimeType: 'application/json',
@@ -81,6 +90,28 @@ async function generateOnce(apiKey: string, prompt: string) {
     throw new Error('퀴즈 questions 배열이 비어 있음')
   }
   return parsed.questions
+}
+
+// 모델 폴백 체인을 순회하며 시도. "모델 없음" 에러는 다음 모델로, 그 외 에러는 그대로 throw
+async function generateWithFallback(apiKey: string, prompt: string): Promise<{ questions: unknown[]; modelUsed: string }> {
+  let lastError: unknown = null
+  for (const modelName of MODEL_CHAIN) {
+    try {
+      const questions = await generateOnce(apiKey, prompt, modelName)
+      return { questions, modelUsed: modelName }
+    } catch (e) {
+      const m = e instanceof Error ? e.message : String(e)
+      // 모델 미지원/미발견이면 다음 모델로
+      if (/not.?found|404|unsupported|invalid.?model|model.*not/i.test(m.toLowerCase())) {
+        console.warn(`[quiz] 모델 ${modelName} 미지원, 다음 모델 시도:`, m)
+        lastError = e
+        continue
+      }
+      // 다른 종류의 에러면 폴백 시도 안 하고 그대로 throw
+      throw e
+    }
+  }
+  throw lastError || new Error('모든 폴백 모델이 사용 불가합니다')
 }
 
 export async function POST(
@@ -123,16 +154,18 @@ export async function POST(
 
   const prompt = buildPrompt(title, description, transcript)
 
-  // 1차 시도 + 실패 시 1회 자동 재시도
+  // 1차 시도 + 실패 시 1회 자동 재시도 (모델 폴백 체인 내장)
   let lastError: unknown = null
+  let modelUsed = ''
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const questions = await generateOnce(apiKey, prompt)
+      const { questions, modelUsed: m } = await generateWithFallback(apiKey, prompt)
+      modelUsed = m
       return NextResponse.json({
         questions,
-        // 디버깅 정보 (개발자 콘솔용)
         meta: {
           attempt,
+          modelUsed: m,
           transcriptUsed: transcript.length > 0,
           transcriptError: transcriptError || undefined,
         },
@@ -140,12 +173,13 @@ export async function POST(
     } catch (error) {
       lastError = error
       console.error(`[quiz] 시도 ${attempt} 실패:`, error)
-      // 마지막 시도가 아니면 짧게 대기 후 재시도
       if (attempt === 1) {
         await new Promise(r => setTimeout(r, 800))
       }
     }
   }
+  // 디버그 로그용
+  if (modelUsed) console.error('[quiz] 마지막 시도 모델:', modelUsed)
 
   // 두 번 다 실패한 경우 — 에러 분류해서 명확한 메시지 전달
   const errMsg = lastError instanceof Error ? lastError.message : String(lastError)
