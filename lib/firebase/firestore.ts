@@ -380,41 +380,62 @@ export function isRewardExpired(reward: { expiresAt?: string }): boolean {
   return reward.expiresAt < today
 }
 
-// 보상 교환 신청
+// 보상 교환 신청 — Transaction으로 4단계 원자적 처리
+// (이전엔 권한 오류로 stock 업데이트가 실패하면 포인트만 깎이고 내역이 안 남았음)
 export async function claimReward(userId: string, userName: string, reward: Reward): Promise<boolean> {
+  if (isRewardExpired(reward)) {
+    alert('교환 기간이 종료된 상품입니다')
+    return false
+  }
   try {
-    if (isRewardExpired(reward)) {
-      alert('교환 기간이 종료된 상품입니다')
-      return false
-    }
-    const userDoc = await getDoc(doc(db, 'users', userId))
-    const userData = userDoc.data() as UserProfile
-    if ((userData.totalPoints || 0) < reward.requiredPoints) {
-      alert('그뤠잇이 부족합니다')
-      return false
-    }
-    if (reward.stock <= 0) {
-      alert('재고가 없습니다')
-      return false
-    }
-    // 포인트 차감
-    await updateDoc(doc(db, 'users', userId), { totalPoints: increment(-reward.requiredPoints) })
-    // 재고 감소
-    await updateDoc(doc(db, 'rewards', reward.id), { stock: increment(-1) })
-    // 교환 내역 기록
-    const claimRef = doc(collection(db, 'rewardClaims'))
-    await setDoc(claimRef, {
-      userId, userName, rewardId: reward.id, rewardName: reward.name,
-      points: reward.requiredPoints, status: 'pending', createdAt: serverTimestamp(),
+    return await runTransaction(db, async (tx) => {
+      const userRef = doc(db, 'users', userId)
+      const rewardRef = doc(db, 'rewards', reward.id)
+
+      const userSnap = await tx.get(userRef)
+      const rewardSnap = await tx.get(rewardRef)
+
+      if (!userSnap.exists()) { alert('사용자 정보를 찾을 수 없습니다'); return false }
+      if (!rewardSnap.exists()) { alert('보상 정보를 찾을 수 없습니다'); return false }
+
+      const userData = userSnap.data() as UserProfile
+      const rewardData = rewardSnap.data() as Reward
+      const currentPoints = (userData.totalPoints as number) || 0
+      const currentStock = (rewardData.stock as number) || 0
+
+      if (currentPoints < reward.requiredPoints) {
+        alert('그뤠잇이 부족합니다')
+        return false
+      }
+      if (currentStock <= 0) {
+        alert('재고가 없습니다')
+        return false
+      }
+
+      // 4단계 모두 같은 transaction 안에서 처리 → 하나라도 실패하면 전부 롤백
+      tx.update(userRef, { totalPoints: currentPoints - reward.requiredPoints })
+      tx.update(rewardRef, { stock: currentStock - 1 })
+
+      const claimRef = doc(collection(db, 'rewardClaims'))
+      tx.set(claimRef, {
+        userId, userName, rewardId: reward.id, rewardName: reward.name,
+        points: reward.requiredPoints, status: 'pending', createdAt: serverTimestamp(),
+      })
+
+      const histRef = doc(collection(db, 'pointHistory'))
+      tx.set(histRef, {
+        userId, action: 'reward-claim', points: -reward.requiredPoints,
+        description: `보상 교환: ${reward.name}`, createdAt: serverTimestamp(),
+      })
+
+      return true
     })
-    // 포인트 차감 내역
-    const histRef = doc(collection(db, 'pointHistory'))
-    await setDoc(histRef, {
-      userId, action: 'reward-claim', points: -reward.requiredPoints,
-      description: `보상 교환: ${reward.name}`, createdAt: serverTimestamp(),
-    })
-    return true
-  } catch (error) { console.error('보상 교환 에러:', error); return false }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : '알 수 없는 오류'
+    console.error('보상 교환 에러:', error)
+    alert(`교환 실패: ${msg}\n포인트는 차감되지 않았습니다.`)
+    return false
+  }
 }
 
 // 교환 내역 조회 (관리자용)
