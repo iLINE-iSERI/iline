@@ -343,21 +343,38 @@ export default function AdminMembersPage() {
           />
           <div className="space-y-2 max-h-[600px] overflow-y-auto">
             {filteredUsers.map(u => (
-              <button
-                key={u.uid} onClick={() => handleSelectUser(u)}
-                className={`w-full text-left p-4 rounded-xl border transition hover:shadow-md ${
+              <div
+                key={u.uid}
+                onClick={() => handleSelectUser(u)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectUser(u); } }}
+                className={`group relative w-full text-left p-4 rounded-xl border transition hover:shadow-md cursor-pointer ${
                   selectedUser?.user.uid === u.uid ? 'border-teal-400 bg-teal-50' : 'border-gray-100 bg-white'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
                     <span className="font-semibold text-gray-900">{u.name}</span>
                     <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-red-100 text-red-700' : u.role === 'teacher' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{roleLabel[u.role]}</span>
                   </div>
-                  <span className="font-bold text-teal-600 text-sm">{(u.totalPoints || 0).toLocaleString()} 그뤠잇</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="font-bold text-teal-600 text-sm">{(u.totalPoints || 0).toLocaleString()} 그뤠잇</span>
+                    {u.uid !== user?.uid && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteUser(u.uid, u.name); }}
+                        disabled={savingProfile}
+                        title="회원 완전 삭제"
+                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md p-1 transition disabled:opacity-30"
+                      >
+                        🗑
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="text-xs text-gray-400 mt-1">{u.email} · {groupLabel(u.group || '')}</div>
-              </button>
+              </div>
             ))}
             {filteredUsers.length === 0 && (<div className="text-center py-8 text-gray-400">검색 결과가 없습니다</div>)}
           </div>
