@@ -360,7 +360,7 @@ export default function AdminMembersPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="font-bold text-teal-600 text-sm">{(u.totalPoints || 0).toLocaleString()} 그뤠잇</span>
-                    {u.uid !== user?.uid && (
+                    {u.uid !== auth.currentUser?.uid && (
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleDeleteUser(u.uid, u.name); }}
@@ -560,7 +560,7 @@ export default function AdminMembersPage() {
                       <p className="text-[11px] text-red-700 font-semibold mb-2">⚠ 위험 영역</p>
                       <button
                         onClick={() => handleDeleteUser(selectedUser.user.uid, selectedUser.user.name)}
-                        disabled={savingProfile || selectedUser.user.uid === user?.uid}
+                        disabled={savingProfile || selectedUser.user.uid === auth.currentUser?.uid}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white hover:bg-red-100 disabled:bg-gray-50 disabled:text-gray-400 text-red-600 text-xs font-semibold rounded-lg border border-red-300 transition"
                       >
                         🗑 회원 완전 삭제
