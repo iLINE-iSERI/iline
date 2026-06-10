@@ -73,49 +73,6 @@ export default function AdminMembersPage() {
     }
   };
 
-  // 회원 완전 삭제 (Auth + Firestore + 관련 데이터)
-  const handleDeleteUser = async (targetUid: string, targetName: string) => {
-    if (!auth.currentUser) { alert('로그인 정보가 없습니다'); return; }
-    if (auth.currentUser.uid === targetUid) { alert('본인 계정은 삭제할 수 없습니다'); return; }
-    // 1차 확인
-    if (!confirm(`⚠ ${targetName} 회원을 완전히 삭제할까요?\n\n삭제되는 데이터:\n• 로그인 계정 (Firebase Auth)\n• 회원 프로필\n• 수강 이력 / 학습 진도\n• 그뤠잇 내역 / 보상 교환 내역\n• 강좌 댓글 / 퀴즈 응시 / 히든 클릭\n• 오프라인 강좌 신청 기록\n\n복구 불가능합니다.`)) return;
-    // 2차 확인 — 이름 직접 입력
-    const typed = window.prompt(`확인을 위해 회원 이름 "${targetName}" 을 정확히 입력해주세요`);
-    if (typed === null) return;
-    if (typed.trim() !== targetName) { alert('이름이 일치하지 않습니다. 삭제를 취소합니다.'); return; }
-
-    setSavingProfile(true);
-    try {
-      const idToken = await auth.currentUser.getIdToken();
-      const res = await fetch(`/api/admin/users/${targetUid}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
-      const data = await res.json();
-      if (!res.ok && res.status !== 207) throw new Error(data?.error || `HTTP ${res.status}`);
-
-      // 로컬 state 정리
-      setUsers(prev => prev.filter(u => u.uid !== targetUid));
-      setSelectedUser(prev => prev && prev.user.uid === targetUid ? null : prev);
-
-      const items = data?.summary
-        ? Object.entries(data.summary)
-            .filter(([, n]) => (n as number) > 0)
-            .map(([k, n]) => `• ${k}: ${n}개`)
-            .join('\n')
-        : '';
-      const headline = res.status === 207
-        ? `⚠ 부분 삭제됨: ${data?.error}`
-        : `${targetName} 회원이 완전히 삭제되었습니다`;
-      alert(`${headline}\n\n${items}`);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : '알 수 없는 오류';
-      alert(`회원 삭제 실패: ${msg}`);
-    } finally {
-      setSavingProfile(false);
-    }
-  };
-
   // 비밀번호 재설정 메일 발송 (관리자 → 해당 회원 이메일로)
   const handleSendPasswordReset = async (targetEmail: string, targetName: string) => {
     if (!targetEmail) { alert('이 회원에게 로그인 이메일이 없어 재설정 메일을 보낼 수 없습니다'); return; }
@@ -343,38 +300,21 @@ export default function AdminMembersPage() {
           />
           <div className="space-y-2 max-h-[600px] overflow-y-auto">
             {filteredUsers.map(u => (
-              <div
-                key={u.uid}
-                onClick={() => handleSelectUser(u)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectUser(u); } }}
-                className={`group relative w-full text-left p-4 rounded-xl border transition hover:shadow-md cursor-pointer ${
+              <button
+                key={u.uid} onClick={() => handleSelectUser(u)}
+                className={`w-full text-left p-4 rounded-xl border transition hover:shadow-md ${
                   selectedUser?.user.uid === u.uid ? 'border-teal-400 bg-teal-50' : 'border-gray-100 bg-white'
                 }`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
+                <div className="flex items-center justify-between">
+                  <div>
                     <span className="font-semibold text-gray-900">{u.name}</span>
                     <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-red-100 text-red-700' : u.role === 'teacher' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{roleLabel[u.role]}</span>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="font-bold text-teal-600 text-sm">{(u.totalPoints || 0).toLocaleString()} 그뤠잇</span>
-                    {u.uid !== auth.currentUser?.uid && (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteUser(u.uid, u.name); }}
-                        disabled={savingProfile}
-                        title="회원 완전 삭제"
-                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md p-1 transition disabled:opacity-30"
-                      >
-                        🗑
-                      </button>
-                    )}
-                  </div>
+                  <span className="font-bold text-teal-600 text-sm">{(u.totalPoints || 0).toLocaleString()} 그뤠잇</span>
                 </div>
                 <div className="text-xs text-gray-400 mt-1">{u.email} · {groupLabel(u.group || '')}</div>
-              </div>
+              </button>
             ))}
             {filteredUsers.length === 0 && (<div className="text-center py-8 text-gray-400">검색 결과가 없습니다</div>)}
           </div>
@@ -555,20 +495,6 @@ export default function AdminMembersPage() {
                       <p className="text-[10px] text-gray-400 mt-1 text-center">회원의 등록 이메일로 재설정 링크를 보냅니다</p>
                     </div>
 
-                    {/* 위험 영역 — 회원 완전 삭제 */}
-                    <div className="pt-3 border-t border-red-100 bg-red-50/50 -mx-6 px-6 pb-4 mt-3 rounded-b-xl">
-                      <p className="text-[11px] text-red-700 font-semibold mb-2">⚠ 위험 영역</p>
-                      <button
-                        onClick={() => handleDeleteUser(selectedUser.user.uid, selectedUser.user.name)}
-                        disabled={savingProfile || selectedUser.user.uid === auth.currentUser?.uid}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white hover:bg-red-100 disabled:bg-gray-50 disabled:text-gray-400 text-red-600 text-xs font-semibold rounded-lg border border-red-300 transition"
-                      >
-                        🗑 회원 완전 삭제
-                      </button>
-                      <p className="text-[10px] text-red-600 mt-1 text-center">
-                        Auth 계정 + Firestore 프로필 + 모든 관련 데이터 일괄 삭제 (복구 불가)
-                      </p>
-                    </div>
                   </div>
                 </div>
 
