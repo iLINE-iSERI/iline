@@ -21,6 +21,8 @@ export default function AdminMembersPage() {
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState<string>(''); // '' = 전체
   const [savingProfile, setSavingProfile] = useState(false);
+  const [editingEmailFor, setEditingEmailFor] = useState<string | null>(null);
+  const [emailDraft, setEmailDraft] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -46,10 +48,11 @@ export default function AdminMembersPage() {
     return counts;
   }, [users, groups]);
 
-  // 회원 그룹/카테고리/역할 변경 (관리자)
+  // 회원 그룹/카테고리/역할/이메일 변경 (관리자)
+  // 주의: email은 Firestore의 표시용 이메일만 바꿈. 실제 로그인 이메일(Firebase Auth)은 그대로.
   const handleUpdateUserField = async (
     uid: string,
-    patch: Partial<Pick<UserProfile, 'group' | 'category' | 'role'>>
+    patch: Partial<Pick<UserProfile, 'group' | 'category' | 'role' | 'email'>>
   ) => {
     setSavingProfile(true);
     try {
@@ -248,11 +251,59 @@ export default function AdminMembersPage() {
                 {/* 프로필 카드 */}
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <div>
+                    <div className="flex-grow min-w-0">
                       <h2 className="text-2xl font-bold text-gray-900">{selectedUser.user.name}</h2>
-                      <p className="text-sm text-gray-500">{selectedUser.user.email}</p>
+                      {editingEmailFor === selectedUser.user.uid ? (
+                        <div className="mt-1 flex items-center gap-1 flex-wrap">
+                          <input
+                            type="email"
+                            value={emailDraft}
+                            onChange={(e) => setEmailDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') { setEditingEmailFor(null); setEmailDraft(''); }
+                              if (e.key === 'Enter') {
+                                const trimmed = emailDraft.trim();
+                                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) { alert('올바른 이메일 형식이 아닙니다'); return; }
+                                handleUpdateUserField(selectedUser.user.uid, { email: trimmed });
+                                setEditingEmailFor(null);
+                              }
+                            }}
+                            placeholder="new@example.com"
+                            className="px-2 py-1 text-sm border border-teal-300 rounded focus:ring-2 focus:ring-teal-500 outline-none w-56"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => {
+                              const trimmed = emailDraft.trim();
+                              if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) { alert('올바른 이메일 형식이 아닙니다'); return; }
+                              handleUpdateUserField(selectedUser.user.uid, { email: trimmed });
+                              setEditingEmailFor(null);
+                            }}
+                            className="text-teal-600 text-xs font-semibold px-2"
+                          >
+                            저장
+                          </button>
+                          <button
+                            onClick={() => { setEditingEmailFor(null); setEmailDraft(''); }}
+                            className="text-gray-400 text-xs font-semibold px-2"
+                          >
+                            취소
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm text-gray-500 break-all">{selectedUser.user.email || '(이메일 없음)'}</p>
+                          <button
+                            onClick={() => { setEmailDraft(selectedUser.user.email || ''); setEditingEmailFor(selectedUser.user.uid); }}
+                            className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
+                            title="표시용 이메일만 변경됩니다 (로그인 이메일은 그대로)"
+                          >
+                            ✏️ 수정
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <button onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                    <button onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-gray-600 text-xl flex-shrink-0">✕</button>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-gray-50 rounded-lg p-3 text-center"><div className="text-xs text-gray-500 mb-1">역할</div><div className="font-semibold text-sm">{roleLabel[selectedUser.user.role]}</div></div>
@@ -269,6 +320,7 @@ export default function AdminMembersPage() {
                       <span>관리자 수정</span>
                       {savingProfile && <span className="text-teal-500">저장 중...</span>}
                     </div>
+                    <p className="text-[10px] text-gray-400 -mt-1">이메일은 표시용만 변경. 실제 로그인 이메일(Firebase Auth)은 회원이 직접 변경해야 함</p>
                     <div className="grid grid-cols-2 gap-2">
                       <label className="text-xs text-gray-600">
                         <span className="block mb-1">그룹</span>
