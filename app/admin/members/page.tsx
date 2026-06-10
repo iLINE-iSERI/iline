@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { getAllUsers, getUserEnrollments, getCourse, getUserAllProgress, getUserPointHistory, getGroups, updateUserProfile } from '@/lib/firebase/firestore';
+import { auth } from '@/lib/firebase/config';
 import type { UserProfile, Course, Progress, PointHistory, StudentGroup } from '@/lib/types';
 
 interface MemberDetail {
@@ -48,11 +49,10 @@ export default function AdminMembersPage() {
     return counts;
   }, [users, groups]);
 
-  // 회원 그룹/카테고리/역할/이메일 변경 (관리자)
-  // 주의: email은 Firestore의 표시용 이메일만 바꿈. 실제 로그인 이메일(Firebase Auth)은 그대로.
+  // 회원 그룹/카테고리/역할 변경 (관리자, Firestore만 변경)
   const handleUpdateUserField = async (
     uid: string,
-    patch: Partial<Pick<UserProfile, 'group' | 'category' | 'role' | 'email'>>
+    patch: Partial<Pick<UserProfile, 'group' | 'category' | 'role'>>
   ) => {
     setSavingProfile(true);
     try {
@@ -64,6 +64,38 @@ export default function AdminMembersPage() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : '알 수 없는 오류';
       alert(`회원 정보 변경 실패: ${msg}`);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // 회원 이메일 변경 — Firebase Auth(로그인 이메일) + Firestore(표시용) 동시 변경
+  // 서버 API 라우트가 Admin SDK로 처리
+  const handleUpdateUserEmail = async (uid: string, newEmail: string) => {
+    if (!auth.currentUser) { alert('로그인 정보가 없습니다'); return; }
+    if (!confirm(`이 회원의 로그인 이메일을 "${newEmail}" 로 변경할까요?\n\n변경 후 회원은 새 이메일로 로그인해야 합니다.`)) return;
+    setSavingProfile(true);
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch(`/api/admin/users/${uid}/email`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ email: newEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      // 로컬 state 반영
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, email: newEmail } as UserProfile : u));
+      setSelectedUser(prev => prev && prev.user.uid === uid
+        ? { ...prev, user: { ...prev.user, email: newEmail } as UserProfile }
+        : prev);
+      alert('이메일이 변경되었습니다. 회원은 새 이메일로 로그인해야 합니다.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '알 수 없는 오류';
+      alert(`이메일 변경 실패: ${msg}`);
     } finally {
       setSavingProfile(false);
     }
@@ -264,7 +296,7 @@ export default function AdminMembersPage() {
                               if (e.key === 'Enter') {
                                 const trimmed = emailDraft.trim();
                                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) { alert('올바른 이메일 형식이 아닙니다'); return; }
-                                handleUpdateUserField(selectedUser.user.uid, { email: trimmed });
+                                handleUpdateUserEmail(selectedUser.user.uid, trimmed);
                                 setEditingEmailFor(null);
                               }
                             }}
@@ -276,7 +308,7 @@ export default function AdminMembersPage() {
                             onClick={() => {
                               const trimmed = emailDraft.trim();
                               if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) { alert('올바른 이메일 형식이 아닙니다'); return; }
-                              handleUpdateUserField(selectedUser.user.uid, { email: trimmed });
+                              handleUpdateUserEmail(selectedUser.user.uid, trimmed);
                               setEditingEmailFor(null);
                             }}
                             className="text-teal-600 text-xs font-semibold px-2"
@@ -320,7 +352,7 @@ export default function AdminMembersPage() {
                       <span>관리자 수정</span>
                       {savingProfile && <span className="text-teal-500">저장 중...</span>}
                     </div>
-                    <p className="text-[10px] text-gray-400 -mt-1">이메일은 표시용만 변경. 실제 로그인 이메일(Firebase Auth)은 회원이 직접 변경해야 함</p>
+                    <p className="text-[10px] text-gray-400 -mt-1">이메일 변경 시 회원의 로그인 이메일까지 함께 바뀝니다 (회원에게 새 이메일 안내 필요)</p>
                     <div className="grid grid-cols-2 gap-2">
                       <label className="text-xs text-gray-600">
                         <span className="block mb-1">그룹</span>
