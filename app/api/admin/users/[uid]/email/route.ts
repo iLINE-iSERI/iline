@@ -7,6 +7,56 @@ interface RequestBody {
   email: string
 }
 
+// GET — 회원의 Auth 이메일 + Firestore 이메일 동시 조회
+// 두 값이 다르면 관리자가 동기화할지 결정 가능
+export async function GET(
+  req: NextRequest,
+  ctx: { params: { uid: string } }
+) {
+  const { uid: targetUid } = ctx.params
+  if (!targetUid) {
+    return NextResponse.json({ error: '대상 사용자 ID가 없습니다' }, { status: 400 })
+  }
+
+  try {
+    await verifyAdminCaller(req.headers.get('authorization'))
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : '인증 실패'
+    return NextResponse.json({ error: msg }, { status: 401 })
+  }
+
+  try {
+    const auth = getAdminAuth()
+    const db = getAdminFirestore()
+
+    let authEmail: string | null = null
+    let authExists = true
+    try {
+      const userRecord = await auth.getUser(targetUid)
+      authEmail = userRecord.email || null
+    } catch (e: any) {
+      if (e?.code === 'auth/user-not-found') authExists = false
+      else throw e
+    }
+
+    const docSnap = await db.collection('users').doc(targetUid).get()
+    const firestoreEmail = (docSnap.data()?.email as string | undefined) || null
+
+    return NextResponse.json({
+      authEmail,
+      firestoreEmail,
+      authExists,
+      synced: authExists && authEmail === firestoreEmail,
+    })
+  } catch (e: any) {
+    console.error('[admin/users email GET] 실패:', e)
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : '조회 실패', code: e?.code },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PATCH(
   req: NextRequest,
   ctx: { params: { uid: string } }

@@ -25,6 +25,9 @@ export default function AdminMembersPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [editingEmailFor, setEditingEmailFor] = useState<string | null>(null);
   const [emailDraft, setEmailDraft] = useState('');
+  // 선택된 회원의 Auth 이메일 (Firestore 이메일과 다른지 확인용)
+  const [authEmailCheck, setAuthEmailCheck] = useState<{ authEmail: string | null; authExists: boolean; synced: boolean } | null>(null);
+  const [checkingEmail, setCheckingEmail] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -176,6 +179,7 @@ export default function AdminMembersPage() {
   const handleSelectUser = async (user: UserProfile) => {
     setDetailLoading(true);
     setSelectedUser(null);
+    setAuthEmailCheck(null);
     try {
       const [enrollments, allProgress, history] = await Promise.all([
         getUserEnrollments(user.uid),
@@ -189,8 +193,33 @@ export default function AdminMembersPage() {
       });
       const courses = (await Promise.all(coursePromises)).filter(c => c.course !== null);
       setSelectedUser({ user, courses, pointHistory: history });
+      // 백그라운드로 Auth 이메일 조회 (에러는 silent)
+      void fetchAuthEmail(user.uid);
     } catch (e) { console.error(e); }
     finally { setDetailLoading(false); }
+  };
+
+  // Auth 이메일 조회 (Firestore 이메일과 비교용)
+  const fetchAuthEmail = async (uid: string) => {
+    if (!auth.currentUser) return;
+    setCheckingEmail(true);
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const res = await fetch(`/api/admin/users/${uid}/email`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      if (!res.ok) {
+        setAuthEmailCheck(null);
+        return;
+      }
+      const data = await res.json();
+      setAuthEmailCheck({ authEmail: data.authEmail, authExists: data.authExists, synced: data.synced });
+    } catch (e) {
+      console.error('Auth 이메일 조회 실패:', e);
+      setAuthEmailCheck(null);
+    } finally {
+      setCheckingEmail(false);
+    }
   };
 
   const filteredUsers = users.filter(u => {
@@ -341,15 +370,47 @@ export default function AdminMembersPage() {
                           </button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm text-gray-500 break-all">{selectedUser.user.email || '(이메일 없음)'}</p>
-                          <button
-                            onClick={() => { setEmailDraft(selectedUser.user.email || ''); setEditingEmailFor(selectedUser.user.uid); }}
-                            className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
-                            title="표시용 이메일만 변경됩니다 (로그인 이메일은 그대로)"
-                          >
-                            ✏️ 수정
-                          </button>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm text-gray-500 break-all">{selectedUser.user.email || '(이메일 없음)'}</p>
+                            <span className="text-[10px] text-gray-400">Firestore</span>
+                            <button
+                              onClick={() => { setEmailDraft(selectedUser.user.email || ''); setEditingEmailFor(selectedUser.user.uid); }}
+                              className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
+                            >
+                              ✏️ 수정
+                            </button>
+                          </div>
+                          {/* Auth 이메일 표시 (다를 때만 경고 + 동기화) */}
+                          {checkingEmail && (
+                            <p className="text-[10px] text-gray-400">Auth 이메일 확인 중...</p>
+                          )}
+                          {authEmailCheck && !authEmailCheck.authExists && (
+                            <p className="text-[11px] text-red-500 font-medium">⚠ Firebase Auth 계정이 없습니다 (탈퇴/삭제됨)</p>
+                          )}
+                          {authEmailCheck?.authExists && !authEmailCheck.synced && (
+                            <div className="flex items-center gap-2 flex-wrap p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                              <div className="flex-grow min-w-0">
+                                <p className="text-[11px] text-amber-800 font-semibold">⚠ 로그인 이메일과 다름</p>
+                                <p className="text-[11px] text-amber-700 break-all">실제 로그인: <b>{authEmailCheck.authEmail || '(없음)'}</b></p>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  const firestoreEmail = selectedUser.user.email;
+                                  if (!firestoreEmail) { alert('Firestore 이메일이 비어있어 동기화할 수 없습니다'); return; }
+                                  if (!confirm(`Firebase Auth의 로그인 이메일을 다음으로 변경합니다:\n\n${authEmailCheck.authEmail || '(없음)'}\n→ ${firestoreEmail}\n\n변경 후 회원은 새 이메일로 로그인해야 합니다.`)) return;
+                                  await handleUpdateUserEmail(selectedUser.user.uid, firestoreEmail);
+                                  await fetchAuthEmail(selectedUser.user.uid);
+                                }}
+                                className="text-[11px] bg-amber-600 hover:bg-amber-700 text-white font-semibold px-3 py-1 rounded-md whitespace-nowrap"
+                              >
+                                🔄 Auth에 적용
+                              </button>
+                            </div>
+                          )}
+                          {authEmailCheck?.synced && (
+                            <p className="text-[10px] text-green-600">✓ 로그인 이메일과 동기화됨</p>
+                          )}
                         </div>
                       )}
                     </div>
