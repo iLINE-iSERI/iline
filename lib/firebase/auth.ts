@@ -6,11 +6,18 @@ import {
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   User,
 } from 'firebase/auth'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from './config'
 import { awardPoints } from './firestore'
+
+// 비밀번호 재설정 메일 발송
+// 회원이 직접 (/forgot-password) 또는 관리자가 (/admin/members) 호출
+export async function sendPasswordReset(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email)
+}
 
 const googleProvider = new GoogleAuthProvider()
 

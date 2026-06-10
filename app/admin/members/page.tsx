@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getAllUsers, getUserEnrollments, getCourse, getUserAllProgress, getUserPointHistory, getGroups, updateUserProfile } from '@/lib/firebase/firestore';
 import { auth } from '@/lib/firebase/config';
+import { sendPasswordReset } from '@/lib/firebase/auth';
 import type { UserProfile, Course, Progress, PointHistory, StudentGroup } from '@/lib/types';
 
 interface MemberDetail {
@@ -66,6 +67,23 @@ export default function AdminMembersPage() {
       alert(`회원 정보 변경 실패: ${msg}`);
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  // 비밀번호 재설정 메일 발송 (관리자 → 해당 회원 이메일로)
+  const handleSendPasswordReset = async (targetEmail: string, targetName: string) => {
+    if (!targetEmail) { alert('이 회원에게 로그인 이메일이 없어 재설정 메일을 보낼 수 없습니다'); return; }
+    if (!confirm(`${targetName} 회원에게 비밀번호 재설정 메일을 보낼까요?\n\n받는 곳: ${targetEmail}`)) return;
+    try {
+      await sendPasswordReset(targetEmail);
+      alert(`재설정 메일을 발송했습니다.\n\n${targetEmail}\n\n회원에게 메일 확인을 요청해주세요. (스팸 폴더 포함)`);
+    } catch (e: any) {
+      const code = e?.code as string | undefined;
+      let msg = e instanceof Error ? e.message : '알 수 없는 오류';
+      if (code === 'auth/user-not-found') msg = '이 이메일로 가입된 Firebase Auth 계정이 없습니다';
+      else if (code === 'auth/invalid-email') msg = '유효하지 않은 이메일 형식';
+      else if (code === 'auth/too-many-requests') msg = '요청이 너무 많습니다. 잠시 후 다시 시도해주세요';
+      alert(`재설정 메일 발송 실패: ${msg}`);
     }
   };
 
@@ -402,6 +420,18 @@ export default function AdminMembersPage() {
                           <option value="admin">관리자</option>
                         </select>
                       </label>
+                    </div>
+
+                    {/* 비밀번호 재설정 메일 발송 */}
+                    <div className="pt-3 border-t border-gray-100">
+                      <button
+                        onClick={() => handleSendPasswordReset(selectedUser.user.email, selectedUser.user.name)}
+                        disabled={savingProfile || !selectedUser.user.email}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 disabled:bg-gray-50 disabled:text-gray-400 text-amber-800 text-xs font-semibold rounded-lg border border-amber-200 transition"
+                      >
+                        🔑 비밀번호 재설정 메일 발송
+                      </button>
+                      <p className="text-[10px] text-gray-400 mt-1 text-center">회원의 등록 이메일로 재설정 링크를 보냅니다</p>
                     </div>
                   </div>
                 </div>
