@@ -36,7 +36,7 @@
   --sky-2: #d6edf3;
   --foam: #ffffff;
   /* 감귤 — CI 주황. 포인트 한 점에만 */
-  --tangerine: var(--ci-orange);
+  --tangerine: var(--ci-orange); /* 해 하나에만 쓴다 */
   /* 두 서비스 — 머리띠는 CI 원색, 버튼은 대비 확보한 파생색 */
   --svc-learn: var(--logo-teal);
   --svc-learn-strong: #017a70; /* 흰 글자 5.2:1 */
@@ -121,20 +121,6 @@
   color: var(--sea-deep);
   word-break: keep-all;
 }
-@media (max-width: 639px) {
-  /* 휴대폰: 이름이 두 줄이 되므로 점을 위에 */
-  .org {
-    flex-direction: column;
-    gap: 10px;
-  }
-}
-.orgDot {
-  flex: none;
-  width: 0.5em;
-  height: 0.5em;
-  border-radius: 50%;
-  background: var(--tangerine); /* 감귤 한 점 */
-}
 .title {
   margin: 18px 0 0;
   font-size: clamp(1.0625rem, 2vw, 1.375rem);
@@ -142,6 +128,28 @@
   line-height: 1.5;
   color: var(--ink-muted);
   word-break: keep-all;
+}
+
+/* 해 — 하늘 오른쪽 위. 카드·글자와 겹치지 않는 자리 (능선 뒤에 두면 카드가 가린다) */
+.sun {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #ffd27a, var(--tangerine) 72%);
+  opacity: 0.9;
+  box-shadow: 0 0 40px 10px rgba(249, 160, 27, 0.22);
+}
+@media (min-width: 640px) {
+  .sun {
+    top: 44px;
+    right: 9%;
+    width: 72px;
+    height: 72px;
+    box-shadow: 0 0 60px 16px rgba(249, 160, 27, 0.22);
+  }
 }
 
 /* 오름 능선 — 세 겹, 사진 없이 도형만 */
@@ -244,15 +252,16 @@
 }
 .cardFoot {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-end;
   padding: 14px 26px 20px;
   border-top: 1px solid var(--line);
 }
-.who {
-  font-size: 0.8125rem;
-  color: var(--ink-subtle);
+@media (max-width: 639px) {
+  /* 휴대폰: 버튼을 카드 너비로 — 누르기 쉽게 */
+  .cardFoot .go {
+    width: 100%;
+    justify-content: center;
+  }
 }
 .go {
   display: inline-flex;

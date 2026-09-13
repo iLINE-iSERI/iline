@@ -46,11 +46,13 @@ export default function IntroHubPage() {
           {/* 연구소 이름이 주인공, 안내는 한 줄 (09-13 iSERI) */}
           <div className={s.heroInner}>
             <h1 id="intro-title" className={s.org}>
-              <span className={s.orgDot} aria-hidden="true" />
               제주대학교 지능소프트웨어교육연구소
             </h1>
             <p className={s.title}>이용하실 서비스를 선택해주세요.</p>
           </div>
+
+          {/* 해 — CI 주황이 맡는 유일한 자리. 바다 위 하늘에 하나 (09-13 iSERI: 점은 뜬금없다) */}
+          <span className={s.sun} aria-hidden="true" />
 
           {/* 오름 능선 — 도형 세 겹. 사진 없음 (가벼움·저작권 없음) */}
           <svg
@@ -89,8 +91,8 @@ export default function IntroHubPage() {
               </h2>
               <p className={s.cardDesc}>초·중·고 학생부터 누구나 무료로 듣는 인공지능 강의.</p>
             </div>
+            {/* 대상 표시("학생 · 교사 · 일반")는 두지 않는다 — 이용자 유형을 인트로가 단정하지 않는다 (09-13 iSERI) */}
             <div className={s.cardFoot}>
-              <span className={s.who}>학생 · 교사 · 일반</span>
               <span className={s.go}>들어가기 →</span>
             </div>
           </Link>
@@ -106,7 +108,6 @@ export default function IntroHubPage() {
               <p className={s.cardDesc}>다양한 지원 프로그램과 학습시설 이용까지 한곳에서.</p>
             </div>
             <div className={s.cardFoot}>
-              <span className={s.who}>사범대학 학생 · 교원</span>
               <span className={s.go}>들어가기 →</span>
             </div>
           </a>
