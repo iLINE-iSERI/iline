@@ -42,10 +42,9 @@ export default function IntroHubPage() {
       </header>
 
       <main className={s.main}>
-        {/* 히어로 — 지시서 §2-A: 기관명(작게) · 제목 · 부제 */}
+        {/* 히어로 — 2차 지시서 §2: 제목 · 부제 두 줄만 (기관명 라벨은 카드와 겹쳐 뺌) */}
         <section className={s.hero} aria-labelledby="intro-title">
           <div className={s.heroInner}>
-            <p className={s.org}>지능소프트웨어교육연구소</p>
             <h1 id="intro-title" className={s.title}>
               이용하실 서비스를 선택해 주세요
             </h1>
@@ -88,21 +87,30 @@ export default function IntroHubPage() {
           </a>
         </nav>
 
-        {/* 오름 — 지시서 §3: 화면 맨 아래, 푸터 바로 위. 카드 뒤에는 아무것도 두지 않는다 */}
+        {/* 제주 상징 — 2차 지시서 §3: 한라산(백록담) 능선 · 오름 · 해.
+            전부 미니멀 플랫 실루엣, 극도로 옅게. 카드 아래·푸터 위에만 있고
+            pointer-events 없음 — 클릭·호버를 막지 않는다.
+            돌하르방 실루엣은 09-13 시도 뒤 뺐다 — 옅은 실루엣으로는 표정이 안 살아 어색함 (iSERI) */}
         <div className={s.land} aria-hidden="true">
-          {/* 해 — CI 주황이 맡는 유일한 자리. 능선 뒤에 반쯤 잠김 */}
+          {/* 해 — 한라산 왼쪽 기슭 뒤. CI 주황이 맡는 유일한 자리 */}
           <span className={s.sun} />
-          <svg className={s.ridge} viewBox="0 0 1440 170" preserveAspectRatio="none" focusable="false">
+          <svg className={s.ridge} viewBox="0 0 1440 220" preserveAspectRatio="none" focusable="false">
+            {/* 한라산 — 가운데가 살짝 꺼진(백록담) 넓은 능선, 맨 뒤 */}
             <path
-              d="M0 110 C 200 40, 380 40, 560 95 S 900 150, 1100 90 S 1340 30, 1440 70 L1440 170 L0 170 Z"
+              d="M120 220 C 320 190, 480 120, 620 74 C 660 62, 690 66, 720 72 C 750 66, 780 62, 820 74 C 960 120, 1120 190, 1320 220 Z"
+              fill="rgba(60, 106, 179, 0.06)"
+            />
+            {/* 오름 능선 세 겹 */}
+            <path
+              d="M0 160 C 200 90, 380 90, 560 145 S 900 200, 1100 140 S 1340 80, 1440 120 L1440 220 L0 220 Z"
               fill="rgba(60, 106, 179, 0.05)"
             />
             <path
-              d="M0 135 C 240 85, 420 80, 640 120 S 980 160, 1180 115 S 1360 80, 1440 105 L1440 170 L0 170 Z"
+              d="M0 185 C 240 135, 420 130, 640 170 S 980 210, 1180 165 S 1360 130, 1440 155 L1440 220 L0 220 Z"
               fill="rgba(0, 177, 157, 0.08)"
             />
             <path
-              d="M0 155 C 300 125, 560 120, 800 145 S 1220 165, 1440 140 L1440 170 L0 170 Z"
+              d="M0 205 C 300 175, 560 170, 800 195 S 1220 215, 1440 190 L1440 220 L0 220 Z"
               fill="rgba(0, 177, 157, 0.12)"
             />
           </svg>
