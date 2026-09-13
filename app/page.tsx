@@ -36,7 +36,6 @@ export default function IntroHubPage() {
           {/* 로그인 링크는 두지 않는다 (09-13 iSERI) — 갈림길에는 서비스 선택만 */}
           <div className={s.brand}>
             <Image src="/logo.png" alt="iLINE" width={120} height={40} priority />
-            <span className={s.brandText}>제주대학교 지능소프트웨어교육연구소</span>
           </div>
         </div>
       </header>
@@ -44,15 +43,13 @@ export default function IntroHubPage() {
       <main>
         {/* 바다·하늘 + 오름 능선 */}
         <section className={s.hero} aria-labelledby="intro-title">
+          {/* 연구소 이름이 주인공, 안내는 한 줄 (09-13 iSERI) */}
           <div className={s.heroInner}>
-            <span className={s.eyebrow}>제주대학교 지능소프트웨어교육연구소</span>
-            <h1 id="intro-title" className={s.title}>
-              어떤 서비스를 이용하시나요?
+            <h1 id="intro-title" className={s.org}>
+              <span className={s.orgDot} aria-hidden="true" />
+              제주대학교 지능소프트웨어교육연구소
             </h1>
-            <p className={s.lead}>
-              연구소가 운영하는 두 서비스입니다. 이용할 곳을 골라 들어가세요.
-              계정은 서비스마다 따로 만듭니다.
-            </p>
+            <p className={s.title}>이용하실 서비스를 선택해주세요.</p>
           </div>
 
           {/* 오름 능선 — 도형 세 겹. 사진 없음 (가벼움·저작권 없음) */}
@@ -131,10 +128,6 @@ export default function IntroHubPage() {
           </a>
         </nav>
 
-        <p className={s.note}>
-          두 서비스의 계정은 서로 연결되어 있지 않습니다. 각 사이트에서 따로 가입해 주세요.
-          문의: <a href="mailto:iline.iseri@gmail.com">iline.iseri@gmail.com</a>
-        </p>
       </main>
 
       <footer className={s.footer}>

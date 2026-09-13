@@ -76,14 +76,6 @@
   height: 36px;
   width: auto;
 }
-.brandText {
-  display: none;
-}
-@media (min-width: 640px) {
-  .brandText {
-    display: inline;
-  }
-}
 
 /* ── 바다·하늘 히어로 + 오름 능선 ────────────────────── */
 .hero {
@@ -104,41 +96,39 @@
   max-width: 720px;
   margin: 0 auto;
 }
-.eyebrow {
+.org {
+  margin: 0;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(20, 80, 126, 0.12);
+  gap: 12px;
+  font-size: clamp(1.5rem, 3.6vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
   color: var(--sea-deep);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  word-break: keep-all;
 }
-.eyebrow::before {
-  content: '';
-  width: 8px;
-  height: 8px;
+@media (max-width: 639px) {
+  /* 휴대폰: 이름이 두 줄이 되므로 점을 위에 */
+  .org {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+.orgDot {
+  flex: none;
+  width: 0.5em;
+  height: 0.5em;
   border-radius: 50%;
   background: var(--tangerine); /* 감귤 한 점 */
 }
 .title {
-  margin: 22px 0 0;
-  font-size: clamp(1.75rem, 4.2vw, 2.75rem);
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-  word-break: keep-all; /* 휴대폰에서 '요?' 만 다음 줄로 떨어지지 않게 */
-}
-.lead {
-  word-break: keep-all;
-  margin: 14px auto 0;
-  max-width: 34rem;
-  font-size: 1.0625rem;
-  line-height: 1.7;
+  margin: 18px 0 0;
+  font-size: clamp(1.0625rem, 2vw, 1.375rem);
+  font-weight: 500;
+  line-height: 1.5;
   color: var(--ink-muted);
+  word-break: keep-all;
 }
 
 /* 오름 능선 — 세 겹, 사진 없이 도형만 */
@@ -162,7 +152,7 @@
   position: relative;
   z-index: 2;
   max-width: 1080px;
-  margin: -96px auto 0;
+  margin: -96px auto 40px;
   padding: 0 20px;
   display: grid;
   gap: 16px;
@@ -290,24 +280,6 @@
 }
 .support:hover .go {
   background: var(--svc-support-strong);
-}
-
-/* ── 아래 안내 ─────────────────────────────────────────── */
-.note {
-  max-width: 1080px;
-  margin: 28px auto 0;
-  padding: 0 20px;
-  font-size: 0.875rem;
-  color: var(--ink-subtle);
-  text-align: center;
-  line-height: 1.7;
-  word-break: keep-all;
-}
-.note a {
-  color: var(--sea);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 /* ── 푸터 ─────────────────────────────────────────────── */
