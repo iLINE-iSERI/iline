@@ -48,7 +48,7 @@ export default function IntroHubPage() {
             <h1 id="intro-title" className={s.title}>
               이용하실 서비스를 선택해 주세요
             </h1>
-            <p className={s.lead}>제주대학교 지능소프트웨어교육연구소 맞춤형 교육·지원 플랫폼</p>
+            <p className={s.lead}>제주대학교 지능소프트웨어교육연구소 교육·지원 플랫폼</p>
           </div>
         </section>
 
@@ -92,13 +92,13 @@ export default function IntroHubPage() {
             pointer-events 없음 — 클릭·호버를 막지 않는다.
             돌하르방 실루엣은 09-13 시도 뒤 뺐다 — 옅은 실루엣으로는 표정이 안 살아 어색함 (iSERI) */}
         <div className={s.land} aria-hidden="true">
-          {/* 해 — 한라산 왼쪽 기슭 뒤. CI 주황이 맡는 유일한 자리 */}
+          {/* 해 — 오른쪽 위 구석, 한라산 능선보다 위 하늘에. CI 주황이 맡는 유일한 자리 */}
           <span className={s.sun} />
           <svg className={s.ridge} viewBox="0 0 1440 220" preserveAspectRatio="none" focusable="false">
-            {/* 한라산 — 가운데가 살짝 꺼진(백록담) 넓은 능선, 맨 뒤 */}
+            {/* 한라산 — 오른쪽에 치우친 큰 산, 정상은 백록담처럼 뚜렷하게 파임. 오름보다 한 단 진하게 (09-13 iSERI) */}
             <path
-              d="M120 220 C 320 190, 480 120, 620 74 C 660 62, 690 66, 720 72 C 750 66, 780 62, 820 74 C 960 120, 1120 190, 1320 220 Z"
-              fill="rgba(60, 106, 179, 0.06)"
+              d="M520 220 C 700 180, 840 112, 960 66 C 990 54, 1010 52, 1030 60 C 1042 70, 1056 75, 1072 75 C 1088 75, 1102 70, 1114 60 C 1134 52, 1154 54, 1184 66 C 1290 108, 1380 160, 1440 190 L1440 220 Z"
+              fill="rgba(60, 106, 179, 0.11)"
             />
             {/* 오름 능선 세 겹 */}
             <path

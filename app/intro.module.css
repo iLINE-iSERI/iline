@@ -278,27 +278,28 @@
     height: 200px;
   }
 }
-/* 해 — 한라산 왼쪽 기슭 뒤에 걸친다 (CI 주황이 맡는 유일한 자리) */
+/* 해 — 오른쪽 위 구석, 능선보다 위 하늘에 (CI 주황이 맡는 유일한 자리) */
 .sun {
   position: absolute;
-  left: 18%;
-  bottom: 44px;
-  width: 44px;
-  height: 44px;
+  right: 7%;
+  top: 4px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: radial-gradient(circle at 38% 35%, #ffd27a, var(--sun) 72%);
   opacity: 0.8;
-  box-shadow: 0 0 40px 10px rgba(249, 160, 27, 0.16);
+  box-shadow: 0 0 32px 8px rgba(249, 160, 27, 0.14);
 }
 @media (min-width: 768px) {
   .sun {
-    left: 24%;
-    bottom: 96px;
-    width: 72px;
-    height: 72px;
-    box-shadow: 0 0 64px 16px rgba(249, 160, 27, 0.16);
+    right: 5%;
+    top: 0;
+    width: 56px;
+    height: 56px;
+    box-shadow: 0 0 48px 12px rgba(249, 160, 27, 0.14);
   }
 }
+
 /* ── 푸터 ─────────────────────────────────────────────── */
 .footer {
   padding: 28px 20px 32px;
