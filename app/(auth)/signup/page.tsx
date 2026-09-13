@@ -106,7 +106,7 @@ export default function SignupPage() {
       <div className="absolute bottom-20 left-20 w-72 h-72 bg-purple-200/40 rounded-full blur-3xl" />
       <div className="relative w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-purple-100/50 p-8 border border-white/50">
         <div className="text-center mb-6">
-          <Link href="/"><span className="text-3xl font-bold gradient-text">iLINE</span></Link>
+          <Link href="/home"><span className="text-3xl font-bold gradient-text">iLINE</span></Link>
           <p className="text-gray-500 mt-2">새 계정을 생성하세요</p>
           <p className="text-xs text-teal-600 mt-1 font-medium">모든 강의가 무료입니다</p>
         </div>

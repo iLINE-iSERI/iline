@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
 
       <div className="relative w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-purple-100/50 p-8 border border-white/50 animate-fade-in-up">
         <div className="text-center mb-8">
-          <Link href="/">
+          <Link href="/home">
             <span className="text-3xl font-bold gradient-text">iLINE</span>
           </Link>
           <h1 className="text-xl font-bold text-gray-900 mt-4">비밀번호 재설정</h1>

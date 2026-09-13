@@ -7,7 +7,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-teal-50 px-4 py-12">
       <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur-xl rounded-3xl shadow-lg border border-white/50 p-8 sm:p-12">
         <div className="flex items-center justify-between mb-8">
-          <Link href="/" className="text-2xl font-bold gradient-text">iLINE</Link>
+          <Link href="/home" className="text-2xl font-bold gradient-text">iLINE</Link>
           <Link href="/signup" className="text-sm text-purple-600 hover:text-purple-700 font-medium">회원가입으로 돌아가기 →</Link>
         </div>
 

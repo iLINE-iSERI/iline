@@ -36,3 +36,6 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# 환경변수 사본 (.env.local.txt 등) — 서비스 계정 키를 적게 되면 그대로 커밋되므로 (09-13)
+.env*.txt
