@@ -259,7 +259,7 @@
 .land {
   position: relative;
   margin-top: auto;
-  padding-top: 40px;
+  padding-top: 72px; /* 해와 빛무리가 들어갈 여유 — overflow 로 잘리지 않게 */
   overflow: hidden;
   line-height: 0;
   pointer-events: none;
@@ -272,7 +272,7 @@
 }
 @media (min-width: 768px) {
   .land {
-    padding-top: 56px;
+    padding-top: 104px;
   }
   .ridge {
     height: 200px;
@@ -282,21 +282,21 @@
 .sun {
   position: absolute;
   right: 7%;
-  top: 4px;
+  top: 34px;
   width: 36px;
   height: 36px;
   border-radius: 50%;
   background: radial-gradient(circle at 38% 35%, #ffd27a, var(--sun) 72%);
   opacity: 0.8;
-  box-shadow: 0 0 32px 8px rgba(249, 160, 27, 0.14);
+  box-shadow: 0 0 24px 6px rgba(249, 160, 27, 0.14);
 }
 @media (min-width: 768px) {
   .sun {
     right: 5%;
-    top: 0;
+    top: 70px; /* 한라산 정상보다 조금 위 */
     width: 56px;
     height: 56px;
-    box-shadow: 0 0 48px 12px rgba(249, 160, 27, 0.14);
+    box-shadow: 0 0 40px 10px rgba(249, 160, 27, 0.14);
   }
 }
 
