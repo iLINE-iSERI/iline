@@ -84,16 +84,6 @@
     display: inline;
   }
 }
-.topLink {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--sea);
-  text-decoration: none;
-}
-.topLink:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
 
 /* ── 바다·하늘 히어로 + 오름 능선 ────────────────────── */
 .hero {

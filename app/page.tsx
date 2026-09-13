@@ -33,13 +33,11 @@ export default function IntroHubPage() {
       {/* 상단 띠 */}
       <header className={s.top}>
         <div className={s.topInner}>
+          {/* 로그인 링크는 두지 않는다 (09-13 iSERI) — 갈림길에는 서비스 선택만 */}
           <div className={s.brand}>
             <Image src="/logo.png" alt="iLINE" width={120} height={40} priority />
             <span className={s.brandText}>제주대학교 지능소프트웨어교육연구소</span>
           </div>
-          <Link href="/login" className={s.topLink}>
-            iLINE 로그인 →
-          </Link>
         </div>
       </header>
 
