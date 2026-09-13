@@ -7,7 +7,8 @@
  *
  * 기존 iLINE 의 Header/Footer 를 쓰지 않는다 — 로그인 상태·강의 메뉴가 붙은
  * 학습 플랫폼 헤더이고, 여기는 어느 서비스에도 속하지 않은 갈림길이기 때문이다.
- * 색·글꼴은 intro.module.css 한 곳에만 있다 (연구소 CI 반영 시 그 파일만).
+ * 색·글꼴은 intro.module.css 한 곳에만 있다.
+ * 09-13 iSERI 「UI/UX 개선 지시서」대로 재구성 — 능선은 맨 아래로, 카드 뒤는 비움.
  *
  * 로그인한 iLINE 이용자가 북마크로 / 에 들어와도 카드 한 번이면 /home 이다 —
  * 별도 리다이렉트는 두지 않는다 (D-21).
@@ -40,45 +41,19 @@ export default function IntroHubPage() {
         </div>
       </header>
 
-      <main>
-        {/* 바다·하늘 + 오름 능선 */}
+      <main className={s.main}>
+        {/* 히어로 — 지시서 §2-A: 기관명(작게) · 제목 · 부제 */}
         <section className={s.hero} aria-labelledby="intro-title">
-          {/* 연구소 이름이 주인공, 안내는 한 줄 (09-13 iSERI) */}
           <div className={s.heroInner}>
-            <h1 id="intro-title" className={s.org}>
-              제주대학교 지능소프트웨어교육연구소
+            <p className={s.org}>지능소프트웨어교육연구소</p>
+            <h1 id="intro-title" className={s.title}>
+              이용하실 서비스를 선택해 주세요
             </h1>
-            <p className={s.title}>이용하실 서비스를 선택해주세요.</p>
+            <p className={s.lead}>제주대학교 지능소프트웨어교육연구소 맞춤형 교육·지원 플랫폼</p>
           </div>
-
-          {/* 해 — CI 주황이 맡는 유일한 자리. 바다 위 하늘에 하나 (09-13 iSERI: 점은 뜬금없다) */}
-          <span className={s.sun} aria-hidden="true" />
-
-          {/* 오름 능선 — 도형 세 겹. 사진 없음 (가벼움·저작권 없음) */}
-          <svg
-            className={s.ridge}
-            viewBox="0 0 1440 190"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-            focusable="false"
-          >
-            {/* 로고 CI 세 색 — 파랑 #1268B3 · 청남 #0190AF · 청록 #01B8A4 을 옅게 */}
-            <path
-              d="M0 120 C 180 60, 300 60, 460 110 S 760 150, 900 100 S 1200 40, 1440 95 L1440 190 L0 190 Z"
-              fill="rgba(18, 104, 179, 0.16)"
-            />
-            <path
-              d="M0 150 C 220 100, 380 90, 560 135 S 860 170, 1040 130 S 1300 90, 1440 130 L1440 190 L0 190 Z"
-              fill="rgba(1, 144, 175, 0.22)"
-            />
-            <path
-              d="M0 175 C 260 145, 520 140, 760 165 S 1180 185, 1440 160 L1440 190 L0 190 Z"
-              fill="rgba(1, 184, 164, 0.34)"
-            />
-          </svg>
         </section>
 
-        {/* 서비스 카드 둘 — 태그 줄은 두지 않는다 (09-13 iSERI: 간결하게). 지원사업 문구는 iSERI 가 다시 줄 예정 */}
+        {/* 서비스 카드 둘 — 지시서 §2-B. 링크·문구는 그대로 */}
         <nav className={s.cards} aria-label="서비스 선택">
           <Link href="/home" className={`${s.card} ${s.learn}`}>
             <div className={s.cardHead} />
@@ -113,6 +88,25 @@ export default function IntroHubPage() {
           </a>
         </nav>
 
+        {/* 오름 — 지시서 §3: 화면 맨 아래, 푸터 바로 위. 카드 뒤에는 아무것도 두지 않는다 */}
+        <div className={s.land} aria-hidden="true">
+          {/* 해 — CI 주황이 맡는 유일한 자리. 능선 뒤에 반쯤 잠김 */}
+          <span className={s.sun} />
+          <svg className={s.ridge} viewBox="0 0 1440 170" preserveAspectRatio="none" focusable="false">
+            <path
+              d="M0 110 C 200 40, 380 40, 560 95 S 900 150, 1100 90 S 1340 30, 1440 70 L1440 170 L0 170 Z"
+              fill="rgba(60, 106, 179, 0.05)"
+            />
+            <path
+              d="M0 135 C 240 85, 420 80, 640 120 S 980 160, 1180 115 S 1360 80, 1440 105 L1440 170 L0 170 Z"
+              fill="rgba(0, 177, 157, 0.08)"
+            />
+            <path
+              d="M0 155 C 300 125, 560 120, 800 145 S 1220 165, 1440 140 L1440 170 L0 170 Z"
+              fill="rgba(0, 177, 157, 0.12)"
+            />
+          </svg>
+        </div>
       </main>
 
       <footer className={s.footer}>
