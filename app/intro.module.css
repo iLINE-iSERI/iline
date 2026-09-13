@@ -12,29 +12,42 @@
  */
 
 .intro {
-  /* 바다 — 로고의 파랑(#1f5fb0)→청록(#17a58e) 축 */
-  --sea-deep: #14507e;
-  --sea: #1a6fa3;
-  --sea-teal: #17a58e;
-  --sky: #eaf6fb;
-  --sky-2: #d7edf5;
+  /* ── 연구소 CI (09-13 iSERI 제공) ──────────────────────────
+     지능소프트웨어교육연구소 CI:  #F9A01B 주황 · #5ABD76 초록 · #00B19D 청록 ·
+                                  #3C6AB3 파랑 · #58595B 회색
+     로고(라인) CI:                #01B8A4 청록 · #0190AF 청남 · #1268B3 파랑
+     ⚠️ CI 원색 중 밝은 것(청록·초록·주황)은 흰 글자와 대비가 2.5:1 안팎이라
+        **버튼 바탕·본문 글자에는 못 쓴다**(KWCAG 4.5:1). 그런 자리는 같은 색을
+        어둡게 내린 파생색(`-strong`)을 쓰고, 원색은 띠·점·배경에만 쓴다. */
+  --ci-orange: #f9a01b;
+  --ci-green: #5abd76;
+  --ci-teal: #00b19d;
+  --ci-blue: #3c6ab3;
+  --ci-gray: #58595b;
+  --logo-teal: #01b8a4;
+  --logo-cyan: #0190af;
+  --logo-blue: #1268b3;
+
+  /* 바다 — 로고 CI 의 청록→파랑 축 */
+  --sea-deep: var(--logo-blue);
+  --sea: var(--logo-cyan);
+  --sea-teal: var(--logo-teal);
+  --sky: #e9f6f9;
+  --sky-2: #d6edf3;
   --foam: #ffffff;
-  /* 오름 능선 — 청록을 어둡게 */
-  --oreum-1: rgba(20, 80, 126, 0.16);
-  --oreum-2: rgba(23, 165, 142, 0.22);
-  --oreum-3: rgba(23, 165, 142, 0.34);
-  /* 감귤 — 포인트 한 점에만 */
-  --tangerine: #f28c28;
-  --tangerine-soft: #fff1e3;
-  /* 두 서비스 — 카드 머리색 */
-  --svc-learn: #17a58e;
-  --svc-learn-strong: #12836f;
-  --svc-support: #1f5fb0;
-  --svc-support-strong: #184c8d;
-  /* 무채색 본문 */
-  --ink: #17232b;
-  --ink-muted: #4c5a64;
-  --ink-subtle: #7a8790;
+  /* 감귤 — CI 주황. 포인트 한 점에만 */
+  --tangerine: var(--ci-orange);
+  /* 두 서비스 — 머리띠는 CI 원색, 버튼은 대비 확보한 파생색 */
+  --svc-learn: var(--logo-teal);
+  --svc-learn-strong: #017a70; /* 흰 글자 5.2:1 */
+  --svc-learn-stronger: #016b62;
+  --svc-support: var(--ci-blue);
+  --svc-support-strong: #2f5590; /* 7.4:1 */
+  --svc-support-stronger: #254876;
+  /* 무채색 본문 — 회색은 CI 회색 */
+  --ink: #1f2a33;
+  --ink-muted: var(--ci-gray);
+  --ink-subtle: #7c8287;
   --line: #e2e8ec;
   --surface: #ffffff;
   --bg: #f6fafc;
@@ -81,7 +94,7 @@
 .hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--sky) 0%, var(--sky-2) 55%, #cfe6ef 100%);
+  background: linear-gradient(180deg, var(--sky) 0%, var(--sky-2) 55%, #cde8ef 100%);
   padding: 64px 20px 148px;
   text-align: center;
 }
@@ -170,7 +183,7 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 18px;
-  box-shadow: 0 10px 30px rgba(20, 80, 126, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10px 30px rgba(18, 104, 179, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   text-decoration: none;
   color: inherit;
@@ -178,7 +191,7 @@
 }
 .card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 16px 40px rgba(20, 80, 126, 0.14), 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 16px 40px rgba(18, 104, 179, 0.14), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 .card:focus-visible {
   outline: 3px solid var(--sea);
@@ -188,10 +201,10 @@
   height: 6px;
 }
 .learn .cardHead {
-  background: linear-gradient(90deg, var(--svc-learn), var(--svc-support));
+  background: linear-gradient(90deg, var(--logo-teal), var(--logo-cyan), var(--logo-blue));
 }
 .support .cardHead {
-  background: linear-gradient(90deg, var(--svc-support), var(--sea-deep));
+  background: linear-gradient(90deg, var(--ci-blue), var(--logo-blue));
 }
 .cardBody {
   padding: 26px 26px 22px;
@@ -270,16 +283,16 @@
   color: #fff;
 }
 .learn .go {
-  background: var(--svc-learn);
-}
-.learn:hover .go {
   background: var(--svc-learn-strong);
 }
+.learn:hover .go {
+  background: var(--svc-learn-stronger);
+}
 .support .go {
-  background: var(--svc-support);
+  background: var(--svc-support-strong);
 }
 .support:hover .go {
-  background: var(--svc-support-strong);
+  background: var(--svc-support-stronger);
 }
 
 /* ── 푸터 ─────────────────────────────────────────────── */
