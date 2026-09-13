@@ -242,23 +242,6 @@
   line-height: 1.65;
   color: var(--ink-muted);
 }
-.tags {
-  margin: 16px 0 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.tags li {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  color: var(--ink-muted);
-}
 .cardFoot {
   display: flex;
   align-items: center;

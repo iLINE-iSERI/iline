@@ -76,26 +76,18 @@ export default function IntroHubPage() {
           </svg>
         </section>
 
-        {/* 서비스 카드 둘 */}
+        {/* 서비스 카드 둘 — 태그 줄은 두지 않는다 (09-13 iSERI: 간결하게). 지원사업 문구는 iSERI 가 다시 줄 예정 */}
         <nav className={s.cards} aria-label="서비스 선택">
           <Link href="/home" className={`${s.card} ${s.learn}`}>
             <div className={s.cardHead} />
             <div className={s.cardBody}>
-              <p className={s.kicker}>온라인 강의</p>
+              {/* 작은 줄 = 운영 주체. iLINE 은 연구소 명의 — '사범대학' 표기 허가는 지원사업 쪽만 (09-13 iSERI) */}
+              <p className={s.kicker}>지능소프트웨어교육연구소</p>
               <h2 className={s.cardTitle}>
                 iLINE
                 <small>온라인 AI 교육 플랫폼</small>
               </h2>
-              <p className={s.cardDesc}>
-                초·중·고 학생부터 누구나 무료로 듣는 인공지능 강의. 동영상과 실습으로
-                배우고, 진도와 수료증을 관리합니다.
-              </p>
-              <ul className={s.tags}>
-                <li>동영상 강의</li>
-                <li>실습</li>
-                <li>학습 진도</li>
-                <li>수료증</li>
-              </ul>
+              <p className={s.cardDesc}>초·중·고 학생부터 누구나 무료로 듣는 인공지능 강의.</p>
             </div>
             <div className={s.cardFoot}>
               <span className={s.who}>학생 · 교사 · 일반</span>
@@ -106,21 +98,12 @@ export default function IntroHubPage() {
           <a href={SUPPORT_URL} className={`${s.card} ${s.support}`}>
             <div className={s.cardHead} />
             <div className={s.cardBody}>
-              <p className={s.kicker}>교원양성기관 교육과정개발 지원사업</p>
+              <p className={s.kicker}>한국과학창의재단 · 제주대학교 사범대학</p>
               <h2 className={s.cardTitle}>
                 교원양성지원사업
-                <small>프로그램 신청 · 정산 · 시설 예약</small>
+                <small>예비교원을 위한 지원 프로그램</small>
               </h2>
-              <p className={s.cardDesc}>
-                제주대학교 사범대학 예비교원을 위한 지원 프로그램. 공고를 보고
-                신청하고, 선정 뒤 정산과 공부실 예약까지 한곳에서 처리합니다.
-              </p>
-              <ul className={s.tags}>
-                <li>프로그램 신청</li>
-                <li>선정 결과</li>
-                <li>정산</li>
-                <li>시설 예약</li>
-              </ul>
+              <p className={s.cardDesc}>다양한 지원 프로그램과 학습시설 이용까지 한곳에서.</p>
             </div>
             <div className={s.cardFoot}>
               <span className={s.who}>사범대학 학생 · 교원</span>
